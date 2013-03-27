@@ -1,0 +1,57 @@
+<guestconv>
+    <boot>
+        <loader disk='sda' type='none' replacement='grub2'>
+            <loader_opt disk='sda' type='BIOS' name='grub2'/>
+        </loader>
+        <!-- Mandatory replacement of an EFI bootloader with a BIOS one
+            <loader disk='sda' type='EFI' name='grub2-efi' replacement='grub2'>
+                <loader type='BIOS' disk='sda' name='grub2'/>
+            </loader>
+        -->
+        <!-- Information only: no possible replacement
+            <loader disk='sda' type='BIOS' name='grub2'/>
+        -->
+    </boot>
+    <transform>
+        <newdisk name='sda' replace='sda' pt='GPT' align='1048576'>
+            <partition type='xxx-xxx-xxx-xx' source='sda' resize='10737418240'/>
+        </newdisk>
+        <!--
+             <align disk='sda' boundary='1048576'/>
+        -->
+    </transform>
+    <root name='btrfsvol:/dev/sda/root'>
+        <info>
+            <hostname>guest.example.com</hostname>
+            <os>linux</os>
+            <distribution>rhel</distribution>
+            <version>
+                <major>6</major>
+                <minor>4</minor>
+            </version>
+        </info>
+        <devices>
+            <device type='graphics' id='0' driver='qxl-vga'>
+                <driver>qxl-vga</driver>
+                <driver>cirrus-vga</driver>
+            </device>
+            <device type='network' id='eth0' driver='virtio-net-pci'>
+                <driver>virtio-net-pci</driver>
+                <driver>e1000</driver>
+            </device>
+            <device type='network' id='eth1' driver='virtio-net-pci'>
+                <driver>virtio-net-pci</driver>
+                <driver>e1000</driver>
+            </device>
+            <device type='block' id='sda' driver='virtio-blk-pci'>
+                <driver>virtio-blk-pci</driver>
+                <driver>scsi-hd</driver>
+            </device>
+            <device type='console' id='console' driver='isa-serial'>
+                <driver>virtserialport</driver>
+                <driver>virtconsole</driver>
+                <driver>isa-serial</driver>
+            </device>
+        </devices>
+    </root>
+<guestconv>

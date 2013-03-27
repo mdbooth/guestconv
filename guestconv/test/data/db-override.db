@@ -1,0 +1,9 @@
+<guestconv>
+    <capability name='cirrus' os='linux' distro='rhel' major='5'>
+        <dep name='foo'/>
+    </capability>
+
+    <app name='bar' os='linux' distro='rhel' major='5'>
+        <path>bar_path</path>
+    </app>
+</guestconv>

@@ -1,0 +1,222 @@
+<!--
+This file contains guestconv configuration data which should not normally be
+modified.
+
+If you need to amend or add to the contents of this file, it is better to add
+the modifications or additions to /etc/guestconv.conf instead. Configuration in
+/etc/guestconv.conf takes precendence over the contents of this file by default.
+-->
+
+<guestconv>
+  <!-- Capabilities -->
+  <!-- RHEL 6 has always supported virtio -->
+  <capability os='linux' distro='rhel' major='6' name='virtio'/>
+
+  <capability os='linux' distro='rhel' major='5' name='virtio'>
+    <dep name='kernel' minversion='2.6.18-128.el5'/>
+    <dep name='lvm2' minversion='2.02.40-6.el5'/>
+    <dep name='selinux-policy-targeted' minversion='2.4.6-203.el5'
+         ifinstalled='yes'/>
+  </capability>
+
+  <capability os='linux' distro='rhel' major='4' name='virtio'>
+    <dep name='kernel' minversion='2.6.9-89.EL'/>
+  </capability>
+
+  <!-- RHEL 5+ packages the cirrus driver in xorg-x11-drv-cirrus -->
+  <capability os='linux' distro='rhel' major='6' name='cirrus'>
+    <dep name='xorg-x11-drv-cirrus'/>
+  </capability>
+
+  <capability os='linux' distro='rhel' major='5' name='cirrus'>
+    <dep name='xorg-x11-drv-cirrus'/>
+  </capability>
+
+  <!-- RHEL 4 bundles the cirrus driver with the main X package -->
+  <capability os='linux' distro='rhel' major='4' name='cirrus'/>
+
+  <!-- All current versions of Fedora support VirtIO -->
+  <capability os='linux' distro='fedora' name='virtio'/>
+
+  <!-- All current versions of fedora package the cirrus driver in
+       xorg-x11-drv-cirrus -->
+  <capability os='linux' distro='fedora' name='cirrus'>
+    <dep name='xorg-x11-drv-cirrus'/>
+  </capability>
+
+  <!-- RHEL clones: copied from above with distro altered -->
+  <!-- CentOS -->
+  <capability os='linux' distro='centos' major='6' name='virtio'/>
+  <capability os='linux' distro='centos' major='5' name='virtio'>
+    <dep name='kernel' minversion='2.6.18-128.el5'/>
+    <dep name='lvm2' minversion='2.02.40-6.el5'/>
+    <dep name='selinux-policy-targeted' minversion='2.4.6-203.el5'
+         ifinstalled='yes'/>
+  </capability>
+  <capability os='linux' distro='centos' major='4' name='virtio'>
+    <dep name='kernel' minversion='2.6.9-89.EL'/>
+  </capability>
+  <capability os='linux' distro='centos' major='6' name='cirrus'>
+    <dep name='xorg-x11-drv-cirrus'/>
+  </capability>
+  <capability os='linux' distro='centos' major='5' name='cirrus'>
+    <dep name='xorg-x11-drv-cirrus'/>
+  </capability>
+  <capability os='linux' distro='centos' major='4' name='cirrus'/>
+
+  <!-- Scientific Linux -->
+  <capability os='linux' distro='scientificlinux' major='6' name='virtio'/>
+  <capability os='linux' distro='scientificlinux' major='5' name='virtio'>
+    <dep name='kernel' minversion='2.6.18-128.el5'/>
+    <dep name='lvm2' minversion='2.02.40-6.el5'/>
+    <dep name='selinux-policy-targeted' minversion='2.4.6-203.el5'
+         ifinstalled='yes'/>
+  </capability>
+  <capability os='linux' distro='scientificlinux' major='4' name='virtio'>
+    <dep name='kernel' minversion='2.6.9-89.EL'/>
+  </capability>
+  <capability os='linux' distro='scientificlinux' major='6' name='cirrus'>
+    <dep name='xorg-x11-drv-cirrus'/>
+  </capability>
+  <capability os='linux' distro='scientificlinux' major='5' name='cirrus'>
+    <dep name='xorg-x11-drv-cirrus'/>
+  </capability>
+  <capability os='linux' distro='scientificlinux' major='4' name='cirrus'/>
+
+  <!-- All current versions of fedora package the cirrus driver in
+       xorg-x11-drv-cirrus -->
+  <capability os='linux' distro='fedora' name='cirrus'>
+    <dep name='xorg-x11-drv-cirrus'/>
+  </capability>
+
+  <!-- This is a place-holder for the 'user-custom' capability, which allows
+       the user to install custom packages during linux conversions. Don't edit
+       this entry; instead add a more specific match rule containing custom
+       dependencies to /etc/guestconv.conf. -->
+  <capability name='user-custom' os='linux'/>
+
+  <!--
+    Local applications
+
+    The applications below are required for updating software in a guest which
+    it is not possible to obtain via the network. Note that the software itself
+    is not provided with guestconv. guestconv will give an error if any of the
+    software listed below is required but not available. In this case, you
+    should obtain the software and copy it locally to the correct location.
+
+    The default set of packages listed below are the oldest packages which
+    supported VirtIO for each OS. They also have a relatively minimal dependency
+    set, which makes them simpler to install during conversion. If you rely on
+    these packages rather than online update, you MUST apply all relevant
+    security patches immediately after conversion.
+  -->
+
+  <!-- RHEL 5
+       All of these RPMS are from RHEL 5.3, which was the first version of RHEL
+       5 to support VirtIO -->
+  <app os='linux' distro='rhel' major='5' arch='i686' name='kernel'>
+    <path>rhel/5/kernel-2.6.18-128.el5.i686.rpm</path>
+    <dep>ecryptfs-utils</dep>
+  </app>
+  <app os='linux' distro='rhel' major='5' arch='i686' name='kernel-PAE'>
+    <path>rhel/5/kernel-PAE-2.6.18-128.el5.i686.rpm</path>
+    <dep>ecryptfs-utils</dep>
+  </app>
+  <app os='linux' distro='rhel' major='5' arch='x86_64' name='kernel'>
+    <path>rhel/5/kernel-2.6.18-128.el5.x86_64.rpm</path>
+    <dep>ecryptfs-utils</dep>
+  </app>
+  <app os='linux' distro='rhel' major='5' arch='x86_64' name='ecryptfs-utils'>
+    <path>rhel/5/ecryptfs-utils-56-8.el5.x86_64.rpm</path>
+  </app>
+  <app os='linux' distro='rhel' major='5' arch='i386' name='ecryptfs-utils'>
+    <path>rhel/5/ecryptfs-utils-56-8.el5.i386.rpm</path>
+  </app>
+  <app os='linux' distro='rhel' major='5' arch='x86_64' name='lvm2'>
+    <path>rhel/5/lvm2-2.02.40-6.el5.x86_64.rpm</path>
+    <dep>device-mapper</dep>
+    <dep>device-mapper-event</dep>
+  </app>
+  <app os='linux' distro='rhel' major='5' arch='i386' name='lvm2'>
+    <path>rhel/5/lvm2-2.02.40-6.el5.i386.rpm</path>
+    <dep>device-mapper</dep>
+    <dep>device-mapper-event</dep>
+  </app>
+  <app os='linux' distro='rhel' major='5' arch='x86_64' name='device-mapper'>
+    <path>rhel/5/device-mapper-1.02.28-2.el5.x86_64.rpm</path>
+  </app>
+  <app os='linux' distro='rhel' major='5' arch='i386' name='device-mapper'>
+    <path>rhel/5/device-mapper-1.02.28-2.el5.i386.rpm</path>
+  </app>
+  <app os='linux' distro='rhel' major='5' arch='x86_64' name='device-mapper-event'>
+    <path>rhel/5/device-mapper-event-1.02.28-2.el5.x86_64.rpm</path>
+  </app>
+  <app os='linux' distro='rhel' major='5' arch='i386' name='device-mapper-event'>
+    <path>rhel/5/device-mapper-event-1.02.28-2.el5.i386.rpm</path>
+  </app>
+  <app os='linux' distro='rhel' major='5' name='selinux-policy-targeted'>
+    <path>rhel/5/selinux-policy-targeted-2.4.6-203.el5.noarch.rpm</path>
+    <dep>selinux-policy</dep>
+  </app>
+  <app os='linux' distro='rhel' major='5' name='selinux-policy'>
+    <path>rhel/5/selinux-policy-2.4.6-203.el5.noarch.rpm</path>
+  </app>
+
+  <!-- RHEL 4
+       All of these RPMs are from RHEL 4.8, which was the first version of RHEL
+       4 to support VirtIO -->
+  <app os='linux' distro='rhel' major='4' arch='i686' name='kernel'>
+    <path>rhel/4/kernel-2.6.9-89.EL.i686.rpm</path>
+  </app>
+  <app os='linux' distro='rhel' major='4' arch='i686' name='kernel-smp'>
+    <path>rhel/4/kernel-smp-2.6.9-89.EL.i686.rpm</path>
+  </app>
+  <app os='linux' distro='rhel' major='4' arch='i686' name='kernel-hugemem'>
+    <path>rhel/4/kernel-hugemem-2.6.9-89.EL.i686.rpm</path>
+  </app>
+  <app os='linux' distro='rhel' major='4' arch='x86_64' name='kernel'>
+    <path>rhel/4/kernel-2.6.9-89.EL.x86_64.rpm</path>
+  </app>
+  <app os='linux' distro='rhel' major='4' arch='x86_64' name='kernel-smp'>
+    <path>rhel/4/kernel-smp-2.6.9-89.EL.x86_64.rpm</path>
+  </app>
+  <app os='linux' distro='rhel' major='4' arch='x86_64' name='kernel-largesmp'>
+    <path>rhel/4/kernel-largesmp-2.6.9-89.EL.x86_64.rpm</path>
+  </app>
+
+  <!-- Windows -->
+
+  <!-- Each of these should point to the directory containing the appropriate
+       VirtIO drivers. On some platforms (RHEL 6), the directories below will
+       correspond to directories installed by the 'virtio-win' package. -->
+  <app os='windows' major='5' minor='1' arch='i386' name='virtio'>
+    <path>/usr/share/virtio-win/drivers/i386/WinXP</path>
+  </app>
+  <app os='windows' major='5' minor='2' arch='i386' name='virtio'>
+    <path>/usr/share/virtio-win/drivers/i386/Win2003</path>
+  </app>
+  <app os='windows' major='5' minor='2' arch='x86_64' name='virtio'>
+    <path>/usr/share/virtio-win/drivers/amd64/Win2003</path>
+  </app>
+  <app os='windows' major='6' arch='i386' name='virtio'>
+    <path>/usr/share/virtio-win/drivers/i386/Win2008</path>
+  </app>
+  <app os='windows' major='6' arch='x86_64' name='virtio'>
+    <path>/usr/share/virtio-win/drivers/amd64/Win2008</path>
+  </app>
+
+  <!-- RHSrvAny is compiled as a 32 bit app even on 64 bit Windows -->
+  <app os='windows' name='rhsrvany'>
+    <path>windows/rhsrvany.exe</path>
+  </app>
+  <!-- This is a script, so arch-independent -->
+  <app os='windows' name='firstboot'>
+    <path>windows/firstboot.bat</path>
+  </app>
+  <app os='windows' name='firstbootapp'>
+    <path>windows/rhev-apt.exe</path>
+  </app>
+
+  <!-- Default file locations -->
+  <path-root>/var/lib/guestconv/software</path-root>
+</guestconv>

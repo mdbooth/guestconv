@@ -1,0 +1,25 @@
+# Standard excludes
+*~
+*.a
+*.bak
+*.class
+*.cma
+*.cmi
+*.cmo
+*.cmx
+*.cmxa
+*.diff
+*.eml
+*.gcda
+*.gcno
+*.gcov
+*.hi
+*.jar
+*.la
+*.lo
+*.o
+*.orig
+*.patch
+*.pyc
+*.rej
+*.swp
