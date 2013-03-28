@@ -18,12 +18,13 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 import guestconv
+import os
 
 def logger(level, msg):
     print msg
 
 g = guestconv.Converter(['conf/guestconv.db'], logger);
-g.add_drive('/home/mbooth/tmp/f18.img')
+g.add_drive(os.environ['IMAGE_TO_CONVERT'])
 
 desc = g.inspect('rhev')
 print desc
