@@ -74,11 +74,11 @@ class Converter(object):
         h = self._h
 
         h.launch()
-        root_devices = h.inspect_os()
+        guestfs_roots = h.inspect_os()
 
         bootloaders = []
         roots = {}
-        for device in root_devices:
+        for device in guestfs_roots:
             for klass in guestconv.converters.all:
                 converter = None
                 try:
