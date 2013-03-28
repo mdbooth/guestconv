@@ -45,12 +45,29 @@ class Converter(object):
         self._logger(level, message)
 
     def add_drive(self, path, hint=None):
+        """Add the drive that has the virtual image that we want to
+        convert.
+
+        :param path: path to the image
+        :param hint: TODO significance of hint?
+
+        """
         if hint:
             self._h.add_drive(path, name=path)
         else:
             self._h.add_drive(path)
+        # TODO verify that guestfs call succeeded
 
     def inspect(self, target):
+        """Inspect the drive and record needed transformations in the
+        XML document which is returned to the caller.  Gracefully
+        handles multi-boot (meaning there are multiple "root"
+        partitions and possibly multi-OS'es).
+
+        :param target: string indicating the hypervisor.  One of... TODO
+        :returns:  XML document (a string)
+
+        """
         if self._inspection:
             return self._inspection
 
