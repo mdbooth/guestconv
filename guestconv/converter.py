@@ -59,10 +59,13 @@ class Converter(object):
         # TODO verify that guestfs call succeeded
 
     def inspect(self, target):
-        """Inspect the drive and record needed transformations in the
-        XML document which is returned to the caller.  Gracefully
-        handles multi-boot (meaning there are multiple "root"
-        partitions and possibly multi-OS'es).
+        """Inspect the drive, record needed transformations (to
+        make the OS(es) bootable by the target hypervisor) in the XML
+        document which is returned to the caller.  Gracefully handles
+        multi-boot (meaning there are multiple "root" partitions and
+        possibly multi-OS'es).
+
+        This is a read-only operation.  <-- TODO correct?
 
         :param target: string indicating the hypervisor.  One of... TODO
         :returns:  XML document (a string)
@@ -168,6 +171,16 @@ class Converter(object):
         return self._inspection
 
     def convert(self, desc):
+        """Do the conversion indicated by desc, an XML document.  The
+        virtual image will be modified in place.
+
+        Note that desc may simply be the XML returned by inpsect(), or
+        a modified version of it.
+
+        :param desc:  XML document string
+        :returns:  TODO
+
+        """
         root = ET.fromstring(desc)
 
         bootloaders = []
