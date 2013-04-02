@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-sudo yum install -y curl python-libguestfs python-lxml
+if ! rpm --quiet -q python-libguestfs python-lxml; then
+    sudo yum install -y curl python-libguestfs python-lxml
+fi
 
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
 
