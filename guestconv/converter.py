@@ -183,11 +183,37 @@ class Converter(object):
         :returns:  TODO
 
         """
-        root = ET.fromstring(desc)
+        dom = ET.fromstring(desc)
 
-        bootloaders = []
+        bootloaders = {}
         roots = {}
 
-        for bootloader in root.xpath('/guestconv/boot/loader'):
-            # XXX
-            pass
+        for loader in dom.xpath('/guestconv/boot/loader'):
+            disk = loader.get('disk')
+            props = {
+                'type': loader.get('type')
+            }
+            replacement = loader.get('replacement')
+            if replacement is not None:
+                props['replacement'] = replacement
+
+            bootloaders[disk] = props
+
+        for root in dom.xpath('/guestconv/root'):
+            name = root.get('name')
+
+            try:
+                converter = self._converters[name]
+            except KeyError:
+                raise guestconv.exception.InvalidConversion \
+                    ('root %s does not exist' % name)
+
+            devices = []
+            for device in root.xpath('device'):
+                devices.append({
+                    'type': device.get('type'),
+                    'id': device.get('id'),
+                    'driver': device.get('driver')
+                })
+
+            converter.convert(bootloaders, devices)

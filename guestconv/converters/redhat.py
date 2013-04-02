@@ -60,3 +60,6 @@ class RedHat(object):
         self._log(DEBUG, 'Set info for %s' % info['hostname'])
 
         return bootloaders, info, devices
+
+    def convert(self, bootloaders, devices):
+        self._log(USER, 'Converting root %s' % self._root)

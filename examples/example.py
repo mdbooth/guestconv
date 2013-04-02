@@ -28,3 +28,4 @@ g.add_drive(os.environ['IMAGE_TO_CONVERT'])
 
 desc = g.inspect('rhev')
 print desc
+g.convert(desc)
