@@ -79,7 +79,7 @@ class Converter(object):
         h.launch()
         guestfs_roots = h.inspect_os()
 
-        bootloaders = []
+        bootloaders = {}
         roots = {}
         for device in guestfs_roots:
             for klass in guestconv.converters.all:
@@ -95,7 +95,7 @@ class Converter(object):
 
                 self._converters[device] = converter
 
-                bootloaders.extend(root_bl)
+                bootloaders.update(root_bl)
                 roots[device] = {
                     'info': root_info,
                     'devices': root_devices
@@ -105,26 +105,28 @@ class Converter(object):
         builder.start('guestconv', {})
 
         builder.start('boot', {})
-        for bootloader in bootloaders:
+        for disk, props in bootloaders.iteritems():
             attrs = {
-                'disk': bootloader['disk'],
-                'type': bootloader['type']
+                'disk': disk,
+                'type': props['type'],
             }
-            replacement = bootloader['replacement']
+            name = props['name']
+            if name is not None:
+                attrs['name'] = name
+            replacement = props['replacement']
             if replacement is not None:
                 attrs['replacement'] = replacement
             builder.start('loader', attrs)
 
-            options = bootloader['options']
+            options = props['options']
             if options is not None:
                 for option in options:
                     attrs = {
-                        'disk': option['disk'],
                         'type': option['type'],
                         'name': option['name']
                     }
-                    builder.start('loader_opt', attrs)
-                    builder.end('loader_opt')
+                    builder.start('loader', attrs)
+                    builder.end('loader')
 
             builder.end('loader')
         builder.end('boot')

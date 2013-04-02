@@ -42,7 +42,7 @@ class RedHat(object):
         self._logger(level, message)
 
     def inspect(self):
-        bootloaders = []
+        bootloaders = {}
         info = {}
         devices = {}
 
