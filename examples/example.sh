@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Known to work on Fedora 18
+
 if ! rpm --quiet -q python-libguestfs python-lxml; then
     sudo yum install -y curl python-libguestfs python-lxml
 fi
@@ -16,4 +18,6 @@ if [ ! -f $HOME/tmp/Fedora18-Cloud-x86_64-20130115.raw ]; then
 fi
 
 cd $TOP_DIR
-IMAGE_TO_CONVERT=$HOME/tmp/Fedora18-Cloud-x86_64-20130115.raw python examples/example.py
+export GUESTCONV_LOG_LEVEL=DEBUG
+export IMAGE_TO_CONVERT=$HOME/tmp/Fedora18-Cloud-x86_64-20130115.raw
+python examples/example.py

@@ -18,6 +18,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 import guestfs
+import logging
 import lxml.etree as ET
 
 import guestconv.converters
@@ -26,6 +27,7 @@ import guestconv.db
 
 from guestconv.log import *
 
+import os
 
 class Converter(object):
     def __init__(self, db_paths, logger=None):
@@ -33,7 +35,19 @@ class Converter(object):
         self._inspection = None
         self._config = guestconv.db.DB(db_paths)
         self._converters = {}
-        self._logger = logger
+        if logger is None:
+            self._logger = logging.getLogger(__name__)
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter(
+                u'%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+            self._logger.addHandler(handler)
+            logLevel = logging.WARNING
+            if u'GUESTCONV_LOG_LEVEL' in os.environ:
+                logLevel = os.environ[u'GUESTCONV_LOG_LEVEL'].upper()
+            self._logger.setLevel(logLevel)
+        else:
+            self._logger = logger
 
     def __del__(self):
         self._h.close()

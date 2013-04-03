@@ -20,10 +20,7 @@
 import guestconv
 import os
 
-def logger(level, msg):
-    print msg
-
-g = guestconv.Converter(['conf/guestconv.db'], logger);
+g = guestconv.Converter(['conf/guestconv.db']);
 g.add_drive(os.environ['IMAGE_TO_CONVERT'])
 
 desc = g.inspect('rhev')
