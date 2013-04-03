@@ -27,6 +27,29 @@ import guestconv.db
 
 import os
 
+# Helper to execute a block of code with a specific root mounted in the
+# libguestfs handle
+class RootMounted(object):
+    def __init__(self, h, root):
+        self._h = h
+        self._root = root
+
+    def __enter__(self):
+        h = self._h
+        root = self._root
+        mounts = h.inspect_get_mountpoints(root)
+        mounts = sorted(mounts, key=lambda entry: len(entry[0]))
+        for mountpoint, device in mounts:
+            h.mount_options('', device, mountpoint)
+
+        return h
+
+    def __exit__(self, type, value, tb):
+        h = self._h
+        h.umount_all()
+        return True
+
+
 class Converter(object):
     """A Converter is capable of converting (possibly
     multi-boot/multi-OS) disk image(s) to a target hypervisor.
@@ -117,7 +140,8 @@ class Converter(object):
                               (converter, root))
                     next
 
-                (root_bl, root_info, root_devices) = converter.inspect()
+                with RootMounted(h, root):
+                    (root_bl, root_info, root_devices) = converter.inspect()
 
                 self._converters[root] = converter
 
@@ -244,4 +268,5 @@ class Converter(object):
                     'driver': device.get('driver')
                 })
 
-            converter.convert(bootloaders, devices)
+            with RootMounted(self._h, name):
+                converter.convert(bootloaders, devices)
