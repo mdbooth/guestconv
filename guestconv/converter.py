@@ -106,23 +106,23 @@ class Converter(object):
 
         bootloaders = {}
         roots = {}
-        for device in guestfs_roots:
+        for root in guestfs_roots:
             for klass in guestconv.converters.all:
                 converter = None
                 try:
-                    converter = klass(h, target, device, self._logger)
+                    converter = klass(h, target, root, self._logger)
                 except guestconv.exception.UnsupportedConversion:
                     self._logger.debug(
                         "Converter %s unsupported for root %s" % \
-                              (converter, device))
+                              (converter, root))
                     next
 
                 (root_bl, root_info, root_devices) = converter.inspect()
 
-                self._converters[device] = converter
+                self._converters[root] = converter
 
                 bootloaders.update(root_bl)
-                roots[device] = {
+                roots[root] = {
                     'info': root_info,
                     'devices': root_devices
                 }
