@@ -30,6 +30,17 @@ from guestconv.log import *
 import os
 
 class Converter(object):
+    """A Converter is capable of converting (possibly
+    multi-boot/multi-OS) disk image(s) to a target hypervisor.
+
+    If no logger object is provided, log messages are written to
+    stderr and the threshold of log messages logged is WARNING unless
+    the environment variable GUESTCONV_LOG_LEVEL is defined (one of
+    DEBUG,INFO,WARNING,ERROR,CRITICAL).
+
+    :param db_paths: list of filenames (xml databases describing capabilities)
+    :param logger: optional logging object
+    """
     def __init__(self, db_paths, logger=None):
         self._h = guestfs.GuestFS()
         self._inspection = None
@@ -60,7 +71,7 @@ class Converter(object):
 
     def add_drive(self, path, hint=None):
         """Add the drive that has the virtual image that we want to
-        convert.
+        convert.  Multiple drives may be added.  <-- TODO correct?
 
         :param path: path to the image
         :param hint: TODO significance of hint?
