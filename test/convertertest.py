@@ -13,6 +13,7 @@
 
 import os
 import unittest
+import tempfile
 from xml.dom import minidom
 
 from guestconv.converter import Converter
@@ -23,7 +24,11 @@ def logger(level, msg):
 class ConverterTest(unittest.TestCase):
     def setUp(self):
         self.c = Converter(['conf/guestconv.db'], logger)
-        #self.c.add_drive("TODO")
+        self.drive = tempfile.NamedTemporaryFile()
+        self.c.add_drive(self.drive.name)
+
+    def tearDown(self):
+        self.drive.close()
 
     def testInspect(self):
         xml = self.c.inspect('rhev')
