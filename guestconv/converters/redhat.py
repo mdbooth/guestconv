@@ -21,8 +21,6 @@ import guestconv.exception
 
 from guestconv.converters.base import BaseConverter
 
-from guestconv.log import *
-
 class RedHat(BaseConverter):
     def __init__(self, h, target, root, logger):
         super(RedHat,self).__init__(h, target, root, logger)
@@ -47,9 +45,10 @@ class RedHat(BaseConverter):
             'minor': h.inspect_get_minor_version(root)
         }
 
-        self._log(DEBUG, 'Set info for %s' % info['hostname'])
+        self._logger.debug('Set info for %s' % info['hostname'])
+        self._logger.debug('info dict: %s' % str(info))
 
         return bootloaders, info, devices
 
     def convert(self, bootloaders, devices):
-        self._log(USER, 'Converting root %s' % self._root)
+        self._logger.info('Converting root %s' % self._root)

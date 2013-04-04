@@ -25,8 +25,6 @@ import guestconv.converters
 import guestconv.exception
 import guestconv.db
 
-from guestconv.log import *
-
 import os
 
 class Converter(object):
@@ -49,8 +47,8 @@ class Converter(object):
         if logger is None:
             self._logger = logging.getLogger(__name__)
             handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                u'%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            formatter = logging.Formatter(u'%(asctime)s - %(filename)s '+
+                          u'%(funcName)s() - %(levelname)s - %(message)s')
             handler.setFormatter(formatter)
             self._logger.addHandler(handler)
             logLevel = logging.WARNING
@@ -64,10 +62,12 @@ class Converter(object):
         self._h.close()
 
     def _log(self, level, message):
+        """Wraps the method logging.Logger.log().  level could be
+        logging.DEBUG or logging.INFO, for instance."""
         if self._logger is None:
             return
 
-        self._logger(level, message)
+        self._logger.log(level, message)
 
     def add_drive(self, path, hint=None):
         """Add the drive that has the virtual image that we want to
@@ -112,7 +112,8 @@ class Converter(object):
                 try:
                     converter = klass(h, target, device, self._logger)
                 except guestconv.exception.UnsupportedConversion:
-                    self._log(DEBUG, "Converter %s unsupported for root %s" % \
+                    self._logger.debug(
+                        "Converter %s unsupported for root %s" % \
                               (converter, device))
                     next
 
@@ -125,6 +126,8 @@ class Converter(object):
                     'info': root_info,
                     'devices': root_devices
                 }
+                # TODO call "continue" to break out of inner loop?
+                # (it only makes sense for one converter to succeed, right?)
 
         builder = ET.TreeBuilder()
         builder.start('guestconv', {})

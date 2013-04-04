@@ -19,8 +19,6 @@
 
 import guestconv.exception
 
-from guestconv.log import *
-
 class BaseConverter(object):
     def __init__(self, h, target, root, logger):
         if target != 'rhev':
@@ -31,10 +29,12 @@ class BaseConverter(object):
         self._logger = logger
 
     def _log(self, level, message):
+        """Wraps the method logging.Logger.log().  level could be
+        logging.DEBUG or logging.INFO, for instance."""
         if self._logger is None:
             return
 
-        self._logger(level, message)
+        self._logger.log(level, message)
 
     def inspect(self):
         # Child classes must implement this
