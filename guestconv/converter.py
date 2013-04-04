@@ -37,8 +37,8 @@ class RootMounted(object):
     def __enter__(self):
         h = self._h
         root = self._root
-        mounts = h.inspect_get_mountpoints(root)
-        mounts = sorted(mounts, key=lambda entry: len(entry[0]))
+        mounts = sorted(h.inspect_get_mountpoints(root).iteritems(),
+                        key=lambda entry: len(entry[0]))
         for mountpoint, device in mounts:
             h.mount_options('', device, mountpoint)
 
@@ -63,7 +63,7 @@ class Converter(object):
     :param logger: optional logging object
     """
     def __init__(self, db_paths, logger=None):
-        self._h = guestfs.GuestFS()
+        self._h = guestfs.GuestFS(python_return_dict=True)
         self._inspection = None
         self._config = guestconv.db.DB(db_paths)
         self._converters = {}
