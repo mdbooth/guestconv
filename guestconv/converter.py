@@ -42,6 +42,8 @@ class RootMounted(object):
         for mountpoint, device in mounts:
             h.mount_options('', device, mountpoint)
 
+        h.aug_init('/', 1)
+
         return h
 
     def __exit__(self, type, value, tb):
