@@ -47,7 +47,7 @@ class RootMounted(object):
     def __exit__(self, type, value, tb):
         h = self._h
         h.umount_all()
-        return True
+        return False
 
 
 class Converter(object):
