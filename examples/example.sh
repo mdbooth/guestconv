@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 
-# Known to work on Fedora 18
+# Warning: the following script no longer just works on Fedora 18,
+# because bleeding-edge guestfs is required (due to
+# https://www.redhat.com/archives/libguestfs/2013-April/msg00011.html
+# ) I was able to get this script to work by doing approximately the
+# following first:
+#
+#   sudo yum install yum-utils
+#   sudo yum-builddep libguestfs
+#   cd $HOME
+#   git clone https://github.com/libguestfs/libguestfs
+#   cd libguestfs
+#   ./autogen.sh
+#   make install
 
 if ! rpm --quiet -q python-libguestfs python-lxml; then
     sudo yum install -y curl python-libguestfs python-lxml
