@@ -19,27 +19,17 @@
 
 import guestconv.exception
 
+from guestconv.converters.base import BaseConverter
+
 from guestconv.log import *
 
-class RedHat(object):
+class RedHat(BaseConverter):
     def __init__(self, h, target, root, logger):
-        if target != 'rhev':
-            raise guestconv.exception.UnsupportedConversion()
-
-        self._h = h
-        self._root = root
-        self._logger = logger
-
+        super(RedHat,self).__init__(h, target, root, logger)
         distro = h.inspect_get_distro(root)
         if (h.inspect_get_type(root) != 'linux' or
                 h.inspect_get_distro(root) not in ('rhel', 'fedora')):
             raise guestconv.exception.UnsupportedConversion
-
-    def _log(self, level, message):
-        if self._logger is None:
-            return
-
-        self._logger(level, message)
 
     def inspect(self):
         bootloaders = {}
