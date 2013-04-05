@@ -97,7 +97,6 @@ class Converter(object):
             self._h.add_drive(path, name=path)
         else:
             self._h.add_drive(path)
-        # TODO verify that guestfs call succeeded
 
     def inspect(self, target):
         """Inspect the drive, record needed transformations (to
@@ -143,8 +142,9 @@ class Converter(object):
                     'info': root_info,
                     'devices': root_devices
                 }
-                # TODO call "continue" to break out of inner loop?
-                # (it only makes sense for one converter to succeed, right?)
+
+                # We only want 1 converter to run
+                break
 
         builder = ET.TreeBuilder()
         builder.start('guestconv', {})
