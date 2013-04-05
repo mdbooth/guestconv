@@ -19,7 +19,7 @@
 
 import re
 
-import guestconv.exception
+from guestconv.exception import *
 
 from guestconv.converters.base import BaseConverter
 
@@ -54,14 +54,14 @@ def augeas_error(h, ex):
             if u'lens' in detail:
                 msg += u'augeas lens: %s\n' % detail[u'lens']
     except GuestFSException as new:
-        raise guestconv.exception.ConversionError(
+        raise ConversionError(
                 u'error generating augeas error: %s\n' % new +
                 u'original error: %s' % ex)
 
     msg = msg.strip()
 
     if len(msg) > 0:
-        raise guestconv.exception.ConversionError(msg)
+        raise ConversionError(msg)
 
     raise ex
 
@@ -75,7 +75,7 @@ class Grub(object):
             if m is not None:
                 return m.group(1)
 
-        raise guestconv.exception.ConversionError(
+        raise ConversionError(
             u"grubby didn't return an initrd for kernel %s" % path)
 
 
@@ -162,7 +162,7 @@ class RedHat(BaseConverter):
         distro = h.inspect_get_distro(root)
         if (h.inspect_get_type(root) != 'linux' or
                 h.inspect_get_distro(root) not in ('rhel', 'fedora')):
-            raise guestconv.exception.UnsupportedConversion
+            raise UnsupportedConversion
 
     def inspect(self):
         bootloaders = {}
