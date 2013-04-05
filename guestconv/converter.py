@@ -18,7 +18,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 import guestfs
-import logging
 import lxml.etree as ET
 
 import guestconv.converters

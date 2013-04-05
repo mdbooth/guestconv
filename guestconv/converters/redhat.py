@@ -150,8 +150,8 @@ class GrubLegacy(Grub):
             if h.exists(kernel):
                 kernels.append(kernel)
             else:
-                self._logger(WARN, u"grub refers to %s, which doesn't exist" %
-                                   kernel)
+                self._logger.warn(u"grub refers to %s, which doesn't exist" %
+                                  kernel)
 
         return kernels
 
