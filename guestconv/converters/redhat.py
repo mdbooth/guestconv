@@ -81,9 +81,10 @@ class Grub(object):
 
 # Methods for inspecting and manipulating grub legacy
 class GrubLegacy(Grub):
-    def __init__(self, h, root):
+    def __init__(self, h, root, logger):
         self._h = h
         self._root = root
+        self._logger = logger
 
         self._grub_conf = None
         for path in [u'/boot/grub/grub.conf', u'/boot/grub/menu.lst']:
@@ -156,6 +157,79 @@ class GrubLegacy(Grub):
         return kernels
 
 
+class Grub2(Grub):
+    def list_kernels(self):
+        h = self._h
+
+        kernels = []
+
+        # Get the default kernel
+        default = h.command([u'grubby', u'--default-kernel']).strip()
+        if len(default) > 0:
+            kernels.append(default)
+
+        # This is how the grub2 config generator enumerates kernels
+        for kernel in (h.glob_expand(u'/boot/kernel-*') +
+                       h.glob_expand(u'/boot/vmlinuz-*') +
+                       h.glob_expand(u'/vmlinuz-*')):
+            if (kernel != default and
+                   not re.match(u'\.(?:dpkg-.*|rpmsave|rpmnew)$', kernel)):
+                kernels.append(kernel)
+
+        return kernels
+
+
+class Grub2BIOS(Grub2):
+    def __init__(self, h, root, logger):
+        if not h.exists(u'/boot/grub2/grub.cfg'):
+            raise BootLoaderNotFound()
+
+        self._h = h
+        self._root = root
+        self._logger = root
+
+
+class Grub2EFI(Grub2):
+    def __init__(self, h, root, logger):
+        self._h = h
+        self._root = root
+        self._logger = logger
+
+        self._disk = None
+        # Check all devices for an EFI boot partition
+        for device in h.list_devices():
+            try:
+                guid = h.part_get_gpt_type(device, 1)
+            except GuestFSException:
+                # Not EFI if partition isn't GPT
+                next
+
+            if guid == u'C12A7328-F81F-11D2-BA4B-00A0C93EC93B':
+                self._disk = device
+                break
+
+        # Check we found an EFI boot partition
+        if self._disk is None:
+            raise BootLoaderNotFound()
+
+        # Look for the EFI boot partition in mountpoints
+        try:
+            mp = h.mountpoints()[device + '1']
+        except KeyError:
+            logger.debug(u'Detected EFI bootloader with no mountpoint')
+            raise BootLoaderNotFound()
+
+        self._cfg = None
+        for path in h.find(mp):
+            if re.search(u'/grub\.cfg$', path):
+                self._cfg = mp + path
+                break
+
+        if self._cfg is None:
+            logger.debug(u'Detected mounted EFI bootloader but no grub.cfg')
+            raise BootLoaderNotFound()
+
+
 class RedHat(BaseConverter):
     def __init__(self, h, target, root, logger):
         super(RedHat,self).__init__(h, target, root, logger)
@@ -180,10 +254,20 @@ class RedHat(BaseConverter):
             'minor': h.inspect_get_minor_version(root)
         }
 
-        self._logger.debug('Set info for %s' % info['hostname'])
-        self._logger.debug('info dict: %s' % str(info))
+        self._bootloader = self._inspect_bootloader()
+        print self._bootloader.list_kernels()
 
         return bootloaders, info, devices
+
+    def _inspect_bootloader(self):
+        for bl in [GrubLegacy, Grub2BIOS, Grub2EFI]:
+            try:
+                return bl(self._h, self._root, self._logger)
+            except BootLoaderNotFound:
+                pass # Try the next one
+
+        raise ConversionError(u'Did not detect a bootloader for root %s' %
+                              self._root)
 
     def convert(self, bootloaders, devices):
         self._logger.info('Converting root %s' % self._root)
