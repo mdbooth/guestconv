@@ -17,8 +17,12 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-import guestconv
 import os
+import sys
+
+sys.path.append("../guestconv/")
+
+import guestconv
 
 g = guestconv.Converter(['conf/guestconv.db']);
 g.add_drive(os.environ['IMAGE_TO_CONVERT'])
