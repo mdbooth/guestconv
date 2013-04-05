@@ -30,6 +30,7 @@ if [ ! -f $HOME/tmp/Fedora18-Cloud-x86_64-20130115.raw ]; then
 fi
 
 cd $TOP_DIR
-export GUESTCONV_LOG_LEVEL=DEBUG
+#export GUESTCONV_LOG_LEVEL=DEBUG
+export GUESTCONV_LOG_LEVEL=NOTSET # less than DEBUG
 export IMAGE_TO_CONVERT=$HOME/tmp/Fedora18-Cloud-x86_64-20130115.raw
 python examples/example.py
