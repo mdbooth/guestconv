@@ -24,8 +24,7 @@ import lxml.etree as ET
 import guestconv.converters
 import guestconv.exception
 import guestconv.db
-
-import os
+import guestconv.log
 
 # Helper to execute a block of code with a specific root mounted in the
 # libguestfs handle
@@ -56,43 +55,36 @@ class Converter(object):
     """A Converter is capable of converting (possibly
     multi-boot/multi-OS) disk image(s) to a target hypervisor.
 
+    A logging.Logger object *or* function may be passed in.  If a
+    function is given, the function will receive all log messages
+    (filtering of the messages is the caller's responsibility).  The
+    function takes exactly two arguments: the first being an integer
+    logging level (aligning with the constants in the python logging
+    module, e.g., DEBUG=10, INFO=20, etc.) and the second being the
+    log message itself.  Note that behind the scenes the function is
+    wrapped in a handler and we still create a logging.Logger, but the
+    caller does not need to worry about that (see guestconv/log.py for
+    the implementation).
+
     If no logger object is provided, log messages are written to
     stderr and the threshold of log messages logged is WARNING unless
     the environment variable GUESTCONV_LOG_LEVEL is defined (one of
-    DEBUG,INFO,WARNING,ERROR,CRITICAL).
+    NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL).
 
     :param db_paths: list of filenames (xml databases describing capabilities)
-    :param logger: optional logging object
+    :param logger: optional logging.Logger object or just a function
     """
     def __init__(self, db_paths, logger=None):
         self._h = guestfs.GuestFS(python_return_dict=True)
         self._inspection = None
         self._config = guestconv.db.DB(db_paths)
         self._converters = {}
-        if logger is None:
-            self._logger = logging.getLogger(__name__)
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter(u'%(asctime)s - %(filename)s '+
-                          u'%(funcName)s() - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            self._logger.addHandler(handler)
-            logLevel = logging.WARNING
-            if u'GUESTCONV_LOG_LEVEL' in os.environ:
-                logLevel = os.environ[u'GUESTCONV_LOG_LEVEL'].upper()
-            self._logger.setLevel(logLevel)
-        else:
-            self._logger = logger
+        self._logger = guestconv.log.get_logger_object(logger)
+        # a less-than DEBUG logging message (since 10 == DEBUG)
+        self._logger.log( 5 , u'Converter __init_() completed' )
 
     def __del__(self):
         self._h.close()
-
-    def _log(self, level, message):
-        """Wraps the method logging.Logger.log().  level could be
-        logging.DEBUG or logging.INFO, for instance."""
-        if self._logger is None:
-            return
-
-        self._logger.log(level, message)
 
     def add_drive(self, path, hint=None):
         """Add the drive that has the virtual image that we want to

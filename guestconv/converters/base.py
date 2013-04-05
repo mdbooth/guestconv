@@ -17,6 +17,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+import logging
 import guestconv.exception
 
 class BaseConverter(object):
@@ -26,15 +27,7 @@ class BaseConverter(object):
 
         self._h = h
         self._root = root
-        self._logger = logger
-
-    def _log(self, level, message):
-        """Wraps the method logging.Logger.log().  level could be
-        logging.DEBUG or logging.INFO, for instance."""
-        if self._logger is None:
-            return
-
-        self._logger.log(level, message)
+        self._logger = guestconv.log.get_logger_object(logger)
 
     def inspect(self):
         # Child classes must implement this
