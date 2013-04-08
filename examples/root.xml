@@ -1,15 +1,15 @@
 <guestconv>
     <boot>
-        <loader disk='sda' type='none' replacement='grub2'>
-            <loader type='BIOS' name='grub2'/>
+        <loader disk='sda' type='none' replacement='grub2-bios'>
+            <loader type='BIOS' name='grub2-bios'/>
         </loader>
         <!-- Mandatory replacement of an EFI bootloader with a BIOS one
-            <loader disk='sda' type='EFI' name='grub2-efi' replacement='grub2'>
-                <loader type='BIOS' name='grub2'/>
+            <loader disk='sda' type='EFI' name='grub2-efi' replacement='grub2-bios'>
+                <loader type='BIOS' name='grub2-bios'/>
             </loader>
         -->
         <!-- Information only: no possible replacement
-            <loader disk='sda' type='BIOS' name='grub2'/>
+            <loader disk='sda' type='BIOS' name='grub2-bios'/>
         -->
     </boot>
     <transform>
