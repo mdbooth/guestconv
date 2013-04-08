@@ -2,31 +2,39 @@
 #include <stdio.h>
 #include "guestconv.h"
 
-int main (void)
+int main(int argc, char *argv[])
 {
     GuestConv *gc;
     char *description;
+    char *database;
+    char *drive;
 
-    gc = guestconv_init("/home/imain/src/guestconv/conf/guestconv.db");
+    if (argc != 3) {
+        printf("Usage: test <database path> <drive path>\n");
+        return 0;
+    }
+
+    database = argv[1];
+    drive = argv[2];
+
+    gc = guestconv_init(database);
     if (guestconv_err(gc)) {
 	fprintf(stderr, "error initializing guestconv: %s\n", gc->error);
 	return 1;
     }
-    
-    printf("gc is %p\n", gc);
 
-    guestconv_add_drive(gc, "/home/imain/tmp/Fedora18-Cloud-x86_64-20130115.raw");
+    guestconv_add_drive(gc, drive);
     if (guestconv_err(gc)) {
 	fprintf(stderr, "error adding drive: %s\n", gc->error);
 	return 1;
     }
-    
+
     description = guestconv_inspect(gc, "rhev");
     if (guestconv_err(gc)) {
 	fprintf(stderr, "error getting description: %s\n", gc->error);
 	return 1;
     }
-    
+
     printf("description: %s\n", description);
 
     guestconv_convert(gc, description);
