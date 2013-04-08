@@ -103,11 +103,25 @@ class GrubLegacy(Grub):
         for path in [u'/boot/grub', u'/boot']:
             if path in mounts:
                 self._grub_fs = path
+                self._grub_device = mounts[path]
                 break
+
+        if self._grub_fs == '':
+            self._grub_device = mounts[u'/']
 
         # We used to check that the augeas grub lens included our specific
         # grub.conf location, but augeas has done this by default for some time
         # now.
+
+    def inspect(self):
+        m = re.match(u'^/dev/([a-z]*)[0-9]*$', self._grub_device)
+        disk = m.group(1)
+        props = {
+            u'type': u'BIOS',
+            u'name': u'grub-legacy'
+        }
+
+        return disk, props
 
     def list_kernels(self):
         h = self._h
@@ -188,6 +202,23 @@ class Grub2BIOS(Grub2):
         self._root = root
         self._logger = root
 
+    def inspect(self):
+        # Find the grub device
+        disk = None
+        mounts = h.inspect_get_mountpoints(root)
+        for path in [u'/boot/grub2', u'/boot', u'/']:
+            if path in mounts:
+                m = re.match(u'^/dev/([a-z]*)[0-9]*$', mounts[path])
+                disk = m.group(1)
+                break
+
+        props = {
+            u'type': u'BIOS',
+            u'name': u'grub2-bios'
+        }
+
+        return disk, props
+
 
 class Grub2EFI(Grub2):
     def __init__(self, h, root, logger):
@@ -229,6 +260,19 @@ class Grub2EFI(Grub2):
             logger.debug(u'Detected mounted EFI bootloader but no grub.cfg')
             raise BootLoaderNotFound()
 
+    def inspect(self):
+        props = {
+            u'type': u'EFI',
+            u'name': u'grub2-efi',
+            u'replacement': u'grub2-bios',
+            u'options': [
+                {u'type': u'BIOS', u'name': u'grub2-bios'},
+                {u'type': u'EFI', u'name': u'grub2-efi'},
+            ]
+        }
+
+        return self._disk, props
+
 
 class RedHat(BaseConverter):
     def __init__(self, h, target, root, logger):
@@ -239,7 +283,6 @@ class RedHat(BaseConverter):
             raise UnsupportedConversion
 
     def inspect(self):
-        bootloaders = {}
         info = {}
         devices = {}
 
@@ -257,10 +300,12 @@ class RedHat(BaseConverter):
         self._bootloader = self._inspect_bootloader()
         print self._bootloader.list_kernels()
 
-        return bootloaders, info, devices
+        bl_disk, bl_props = self._bootloader.inspect()
+
+        return {bl_disk: bl_props}, info, devices
 
     def _inspect_bootloader(self):
-        for bl in [GrubLegacy, Grub2BIOS, Grub2EFI]:
+        for bl in [GrubLegacy, Grub2EFI, Grub2BIOS]:
             try:
                 return bl(self._h, self._root, self._logger)
             except BootLoaderNotFound:
