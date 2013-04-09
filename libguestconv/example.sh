@@ -29,6 +29,6 @@ fi
 
 popd -n
 
-export image_to_convert=$HOME/tmp/Fedora18-Cloud-x86_64-20130115.raw
+image_to_convert=$HOME/tmp/Fedora18-Cloud-x86_64-20130115.raw
 echo ./test $HOME/tmp/database.db $image_to_convert
 ./example $HOME/tmp/database.db $image_to_convert

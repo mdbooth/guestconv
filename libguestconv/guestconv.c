@@ -17,6 +17,8 @@ guestconv_new(void)
     guestconv->backtrace = NULL;
     guestconv->pyth_module = NULL;
     guestconv->gc_inst = NULL;
+
+    return guestconv;
 }
 
 static void
