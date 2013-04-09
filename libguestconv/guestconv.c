@@ -76,9 +76,8 @@ GuestConv *
 guestconv_init(char *database_location)
 {
     PyObject *module_name, *pyth_module, *pyth_func;
-    PyObject *python_tuple, *pyth_val;
+    PyObject *pyth_val;
     GuestConv *gc = NULL;
-    int i;
 
     gc = guestconv_new();
     if (gc == NULL)
@@ -154,9 +153,6 @@ guestconv_inspect(GuestConv *gc, char *target)
 void
 guestconv_convert(GuestConv *gc, char *description)
 {
-    PyObject *ret;
-    char *str = NULL;
-
     if (gc->gc_inst == NULL) {
         gc->error = "guestconv instance was never initialized.";
         return;
