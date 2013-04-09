@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     char *drive;
 
     if (argc != 3) {
-        printf("Usage: test <database path> <drive path>\n");
+        printf("Usage: example <database path> <drive path>\n");
         return 0;
     }
 

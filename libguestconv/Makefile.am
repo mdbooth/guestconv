@@ -1,9 +1,8 @@
-noinst_PROGRAMS = test
+noinst_PROGRAMS = example
 
-test_CXXFLAGS=-O0 -g
-test_SOURCES = test.c
-test_CFLAGS = $(PYTHON_CFLAGS)
-test_LDADD = $(PYTHON_LDADD) -lguestconv
+example_SOURCES = example.c
+example_CFLAGS = $(PYTHON_CFLAGS)
+example_LDADD = $(PYTHON_LDADD) -lguestconv
 
 lib_LTLIBRARIES = libguestconv.la
 
