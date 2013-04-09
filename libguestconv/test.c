@@ -43,6 +43,17 @@ int main(int argc, char *argv[])
 	return 1;
     }
 
+    fprintf(stderr, "\nINTENTIONAL ERROR TESTING\n");
+    fprintf(stderr, "-------------------------\n");
+    guestconv_convert(gc, "<asdf>");
+    if (guestconv_err(gc)) {
+	fprintf(stderr, "ERROR STRING: %s\n", gc->error);
+	fprintf(stderr, "ERROR TYPE: %s\n", gc->error_type);
+	fprintf(stderr, "ERROR BT: %s\n", gc->backtrace);
+	return 1;
+    }
+
+
     return 0;
 }
 

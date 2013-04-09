@@ -12,7 +12,9 @@ guestconv_new(void)
         fprintf(stderr, "Unable to allocate memory for guestconv structure.\n");
         return NULL;
     }
-    guestconv->error = 0;
+    guestconv->error = NULL;
+    guestconv->error_type = NULL;
+    guestconv->backtrace = NULL;
     guestconv->pyth_module = NULL;
     guestconv->gc_inst = NULL;
 }
@@ -25,13 +27,39 @@ guestconv_check_pyerr(GuestConv *gc)
     err = PyErr_Occurred();
     if (err != NULL) {
 	PyObject *ptype, *pvalue, *ptraceback;
-	PyObject *pystr;
+	PyObject *pystr, *module_name, *pyth_module, *pyth_func;
 	char *str;
 
 	PyErr_Fetch(&ptype, &pvalue, &ptraceback);
-        pystr = PyObject_Str(pvalue);
+	pystr = PyObject_Str(pvalue);
 	str = PyString_AsString(pystr);
 	gc->error = strdup(str);
+
+	pystr = PyObject_GetAttrString(ptype, "__name__");
+	str = PyString_AsString(pystr);
+	gc->error_type = strdup(str);
+
+        /* See if we can get a full traceback */
+        module_name = PyString_FromString("traceback");
+        pyth_module = PyImport_Import(module_name);
+        Py_DECREF(module_name);
+
+        if (pyth_module == NULL) {
+            gc->backtrace = "Cannot load python module 'traceback'";
+            return;
+        }
+
+        pyth_func = PyObject_GetAttrString(pyth_module, "format_exception");
+        if (pyth_func && PyCallable_Check(pyth_func)) {
+            PyObject *pyth_val;
+
+            pyth_val = PyObject_CallFunctionObjArgs(pyth_func, ptype, pvalue, ptraceback, NULL);
+
+            pystr = PyObject_Str(pyth_val);
+            str = PyString_AsString(pystr);
+            gc->backtrace = strdup(str);
+            Py_DECREF(pyth_val);
+        }
     }
 }
 

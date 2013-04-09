@@ -1,3 +1,5 @@
+#ifndef __GUESTCONV_H__
+#define __GUESTCONV_H__
 
 #include <Python.h>
 
@@ -5,6 +7,8 @@ typedef struct {
     PyObject *pyth_module;
     PyObject *gc_inst;
     char *error;
+    char *error_type;
+    char *backtrace;
 } GuestConv;
 
 GuestConv *
@@ -22,3 +26,4 @@ guestconv_inspect(GuestConv *gc, char *target);
 void
 guestconv_convert(GuestConv *gc, char *description);
 
+#endif
