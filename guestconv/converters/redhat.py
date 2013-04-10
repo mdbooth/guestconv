@@ -292,6 +292,7 @@ class RedHat(BaseConverter):
         info['hostname'] = h.inspect_get_hostname(root)
         info['os'] = h.inspect_get_type(root)
         info['distribution'] = h.inspect_get_distro(root)
+        info['arch'] = h.inspect_get_arch(root)
         info['version'] = {
             'major': h.inspect_get_major_version(root),
             'minor': h.inspect_get_minor_version(root)
