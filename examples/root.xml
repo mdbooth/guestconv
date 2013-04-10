@@ -30,28 +30,30 @@
                 <minor>4</minor>
             </version>
         </info>
-        <devices>
-            <device type='graphics' id='0' driver='qxl-vga'>
-                <driver>qxl-vga</driver>
-                <driver>cirrus-vga</driver>
-            </device>
-            <device type='network' id='eth0' driver='virtio-net-pci'>
-                <driver>virtio-net-pci</driver>
-                <driver>e1000</driver>
-            </device>
-            <device type='network' id='eth1' driver='virtio-net-pci'>
-                <driver>virtio-net-pci</driver>
-                <driver>e1000</driver>
-            </device>
-            <device type='block' id='sda' driver='virtio-blk-pci'>
-                <driver>virtio-blk-pci</driver>
-                <driver>scsi-hd</driver>
-            </device>
-            <device type='console' id='console' driver='isa-serial'>
-                <driver>virtserialport</driver>
-                <driver>virtconsole</driver>
-                <driver>isa-serial</driver>
-            </device>
-        </devices>
+        <options>
+            <option type='graphics' description='Graphics driver' choice='qxl-vga'>
+                <value description='Spice'>qxl-vga</value>
+                <value description='Cirrus'>cirrus-vga</value>
+            </option>
+            <option type='network' description='Network driver' choice='virtio-net'>
+                <value description='VirtIO'>virtio-net</value>
+                <value description='Intel E1000'>e1000</value>
+            </option>
+            <option type='block' description='Block device driver' choice='virtio-blk'>
+                <value description='VirtIO'>virtio-blk</value>
+                <value description='IDE'>ide-hd</value>
+                <value description='SCSI'>scsi-hd</value>
+            </option>
+            <option type='console' description='Console configuration' choice='virtio-serial'>
+                <value description='VirtIO Serial'>virtio-serial</value>
+                <value description='ISA Serial'>isa-serial</value>
+                <value description='Virtual Console'>none</value>
+            </option>
+            <option type='update-method' description='Software installation source' choice='yum'>
+                <value description='YUM with local fallback'>yum</value>
+                <value description='Local files'>local</value>
+            </option>
+            <option type='user-custom' description='Install custom packages'/>
+        </options>
     </root>
 </guestconv>
