@@ -21,23 +21,20 @@ import unittest
 import tempfile
 from xml.dom import minidom
 
-from guestconv.converter import Converter
-import guestconv.converters.redhat
-
-def logger(level, msg):
-    print msg
+from test_helper import TestImage
 
 class ConverterTest(unittest.TestCase):
     def setUp(self):
-        self.c = Converter(['conf/guestconv.db'], logger)
+        self.img = TestImage()
+        self.img.open()
+
+    def tearDown(self):
+        self.img.close()
 
     def testInspect(self):
-        drive = tempfile.NamedTemporaryFile()
-        self.c.add_drive(drive.name)
-        xml = self.c.inspect('rhev')
+        xml = self.img.inspect('rhev')
         xmldoc = minidom.parseString(xml)
         self.assertEqual(1, xmldoc.getElementsByTagName('guestconv').length)
-        drive.close()
 
     def testConvert(self):
         # self.c.convert('TODO')
