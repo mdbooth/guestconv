@@ -70,13 +70,16 @@ class Converter(object):
     the environment variable GUESTCONV_LOG_LEVEL is defined (one of
     NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL).
 
+    :param target: string indicating the hypervisor.
     :param db_paths: list of filenames (xml databases describing capabilities)
     :param logger: optional logging.Logger object or just a function
     """
-    def __init__(self, db_paths, logger=None):
+
+    def __init__(self, target, db_paths, logger=None):
         self._h = guestfs.GuestFS(python_return_dict=True)
         self._inspection = None
         self._config = guestconv.db.DB(db_paths)
+        self._target = target
         self._converters = {}
         self._logger = guestconv.log.get_logger_object(logger)
         # a less-than DEBUG logging message (since 10 == DEBUG)
@@ -98,7 +101,7 @@ class Converter(object):
         else:
             self._h.add_drive(path)
 
-    def inspect(self, target):
+    def inspect(self):
         """Inspect the drive, record needed transformations (to
         make the OS(es) bootable by the target hypervisor) in the XML
         document which is returned to the caller.  Gracefully handles
@@ -107,7 +110,6 @@ class Converter(object):
 
         This is a read-only operation.  <-- TODO correct?
 
-        :param target: string indicating the hypervisor.  One of... TODO
         :returns:  XML document (a string)
 
         """
@@ -125,7 +127,7 @@ class Converter(object):
             for klass in guestconv.converters.all:
                 converter = None
                 try:
-                    converter = klass(h, target, root, self._logger)
+                    converter = klass(h, self._target, root, self._logger)
                 except guestconv.exception.UnsupportedConversion:
                     self._logger.debug(
                         "Converter %s unsupported for root %s" % \

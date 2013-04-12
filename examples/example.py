@@ -24,9 +24,9 @@ sys.path.append("../guestconv/")
 
 import guestconv
 
-g = guestconv.Converter(['conf/guestconv.db']);
+g = guestconv.Converter('rhev', ['conf/guestconv.db']);
 g.add_drive(os.environ['IMAGE_TO_CONVERT'])
 
-desc = g.inspect('rhev')
+desc = g.inspect()
 print desc
 g.convert(desc)
