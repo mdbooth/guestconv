@@ -23,9 +23,10 @@
 *.pyc
 *.rej
 *.swp
-build
-dist
-test/data/images
+
+/build
+/dist
+/test/data/images
 
 /locale/*.mo
 /locale/install/
