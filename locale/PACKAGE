@@ -1,0 +1,17 @@
+# Makefile snippet that holds all package-dependent information.
+
+# Add more languages here!  Beware that this is a makefile snippet and
+# you have to adhere to make syntax.
+LINGUAS = \
+    es \
+    fr \
+    zh_CN
+
+# Textdomain for our package.
+TEXTDOMAIN = guestconv
+
+# Initial copyright holder added to pot and po files.
+COPYRIGHT_HOLDER = Red Hat Inc.
+
+# Where to send msgid bugs?
+MSGID_BUGS_ADDRESS = libguestfs@redhat.com

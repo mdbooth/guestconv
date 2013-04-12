@@ -26,3 +26,6 @@
 build
 dist
 test/data/images
+
+/locale/*.mo
+/locale/install/
