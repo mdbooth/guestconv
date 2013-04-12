@@ -144,7 +144,7 @@ class Converter(object):
                     converter = klass(h, self._target, root, self._logger)
                 except guestconv.exception.UnsupportedConversion:
                     self._logger.debug(
-                        "Converter %s unsupported for root %s" % \
+                        u'Converter %s unsupported for root %s' % \
                               (converter, root))
                     next
 
@@ -155,45 +155,45 @@ class Converter(object):
 
                 bootloaders.update(root_bl)
                 roots[root] = {
-                    'info': root_info,
-                    'devices': root_devices
+                    u'info': root_info,
+                    u'devices': root_devices
                 }
 
                 # We only want 1 converter to run
                 break
 
         builder = ET.TreeBuilder()
-        builder.start('guestconv', {})
+        builder.start(u'guestconv', {})
 
-        builder.start('boot', {})
+        builder.start(u'boot', {})
         for disk, props in bootloaders.iteritems():
             attrs = {
-                'disk': disk,
-                'type': props['type'],
+                u'disk': disk,
+                u'type': props[u'type'],
             }
-            name = props['name']
+            name = props[u'name']
             if name is not None:
-                attrs['name'] = name
+                attrs[u'name'] = name
             if u'replacement' in props:
-                attrs['replacement'] = props[u'replacement']
-            builder.start('loader', attrs)
+                attrs[u'replacement'] = props[u'replacement']
+            builder.start(u'loader', attrs)
 
             if u'options' in props:
                 for option in props[u'options']:
                     attrs = {
-                        'type': option['type'],
-                        'name': option['name']
+                        u'type': option[u'type'],
+                        u'name': option[u'name']
                     }
-                    builder.start('loader', attrs)
-                    builder.end('loader')
+                    builder.start(u'loader', attrs)
+                    builder.end(u'loader')
 
-            builder.end('loader')
-        builder.end('boot')
+            builder.end(u'loader')
+        builder.end(u'boot')
 
         for name, root in roots.iteritems():
-            builder.start('root', {'name': name})
+            builder.start(u'root', {u'name': name})
 
-            builder.start('info', {})
+            builder.start(u'info', {})
             def build_info(i):
                 for name, data in i.iteritems():
                     builder.start(name, {})
@@ -202,29 +202,29 @@ class Converter(object):
                     else:
                         builder.data(str(data))
                     builder.end(name)
-            build_info(root['info'])
-            builder.end('info')
+            build_info(root[u'info'])
+            builder.end(u'info')
 
-            builder.start('devices', {})
-            for device in root['devices']:
+            builder.start(u'devices', {})
+            for device in root[u'devices']:
                 attrs = {
-                    'type': root['type'],
-                    'id': root['id'],
-                    'driver': root['driver']
+                    u'type': root[u'type'],
+                    u'id': root[u'id'],
+                    u'driver': root[u'driver']
                 }
-                builder.start('device', attrs)
-                options = device['options']
+                builder.start(u'device', attrs)
+                options = device[u'options']
                 if options is not None:
                     for option in options:
-                        builder.start('driver', {})
+                        builder.start(u'driver', {})
                         builder.data(option)
-                        builder.end('driver')
-                builder.end('device')
-            builder.end('devices')
+                        builder.end(u'driver')
+                builder.end(u'device')
+            builder.end(u'devices')
 
-            builder.end('root')
+            builder.end(u'root')
 
-        builder.end('guestconv')
+        builder.end(u'guestconv')
 
         xml = builder.close()
         self._inspection = ET.tostring(xml, encoding='utf8')
@@ -247,32 +247,32 @@ class Converter(object):
         bootloaders = {}
         roots = {}
 
-        for loader in dom.xpath('/guestconv/boot/loader'):
-            disk = loader.get('disk')
+        for loader in dom.xpath(u'/guestconv/boot/loader'):
+            disk = loader.get(u'disk')
             props = {
-                'type': loader.get('type')
+                u'type': loader.get(u'type')
             }
-            replacement = loader.get('replacement')
+            replacement = loader.get(u'replacement')
             if replacement is not None:
-                props['replacement'] = replacement
+                props[u'replacement'] = replacement
 
             bootloaders[disk] = props
 
-        for root in dom.xpath('/guestconv/root'):
-            name = root.get('name')
+        for root in dom.xpath(u'/guestconv/root'):
+            name = root.get(u'name')
 
             try:
                 converter = self._converters[name]
             except KeyError:
                 raise guestconv.exception.InvalidConversion \
-                    ('root %s does not exist' % name)
+                    (u'root %s specified in desc does not exist' % name)
 
             devices = []
-            for device in root.xpath('device'):
+            for device in root.xpath(u'device'):
                 devices.append({
-                    'type': device.get('type'),
-                    'id': device.get('id'),
-                    'driver': device.get('driver')
+                    u'type': device.get(u'type'),
+                    u'id': device.get(u'id'),
+                    u'driver': device.get(u'driver')
                 })
 
             with RootMounted(self._h, name):

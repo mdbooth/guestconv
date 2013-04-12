@@ -278,9 +278,9 @@ class RedHat(BaseConverter):
     def __init__(self, h, target, root, logger):
         super(RedHat,self).__init__(h, target, root, logger)
         distro = h.inspect_get_distro(root)
-        if (h.inspect_get_type(root) != 'linux' or
-                h.inspect_get_distro(root) not in ('rhel', 'fedora')):
-            raise UnsupportedConversion
+        if (h.inspect_get_type(root) != u'linux' or
+                h.inspect_get_distro(root) not in (u'rhel', u'fedora')):
+            raise UnsupportedConversion()
 
     def inspect(self):
         info = {}
@@ -289,13 +289,13 @@ class RedHat(BaseConverter):
         h = self._h
         root = self._root
 
-        info['hostname'] = h.inspect_get_hostname(root)
-        info['os'] = h.inspect_get_type(root)
-        info['distribution'] = h.inspect_get_distro(root)
-        info['arch'] = h.inspect_get_arch(root)
-        info['version'] = {
-            'major': h.inspect_get_major_version(root),
-            'minor': h.inspect_get_minor_version(root)
+        info[u'hostname'] = h.inspect_get_hostname(root)
+        info[u'os'] = h.inspect_get_type(root)
+        info[u'distribution'] = h.inspect_get_distro(root)
+        info[u'arch'] = h.inspect_get_arch(root)
+        info[u'version'] = {
+            u'major': h.inspect_get_major_version(root),
+            u'minor': h.inspect_get_minor_version(root)
         }
 
         self._bootloader = self._inspect_bootloader()

@@ -48,33 +48,34 @@ class DB(object):
             try:
                 self._trees.append(ET.parse(path))
             except ET.ParseError as e:
-                raise DBParseError("Parse error in %s: %s" % (path, e.message))
+                raise DBParseError(u'Parse error in %(path)s: %(error)s' %
+                                   {u'path': path, u'error': e.message})
 
     def _match_element(self, type_, name, arch, h, root):
         def _match_queries(os, distro, major, minor):
             def _match_query(os, distro, major, minor, arch):
-                query = '/guestconv/%s[@name="%s" and @os="%s" and ' % \
+                query = u'/guestconv/%s[@name="%s" and @os="%s" and ' % \
                         (type_, name, os)
                 if distro is None:
-                    query += 'not(@distro)'
+                    query += u'not(@distro)'
                 else:
-                    query += '@distro="%s"' % distro
-                query += ' and '
+                    query += u'@distro="%s"' % distro
+                query += u' and '
                 if major is None:
-                    query += 'not(@major)'
+                    query += u'not(@major)'
                 else:
-                    query += '@major="%s"' % major
+                    query += u'@major="%s"' % major
                 query += ' and '
                 if minor is None:
-                    query += 'not(@minor)'
+                    query += u'not(@minor)'
                 else:
-                    query += '@minor="%s"' % minor
-                query += ' and '
+                    query += u'@minor="%s"' % minor
+                query += u' and '
                 if arch is None:
-                    query += 'not(@arch)'
+                    query += u'not(@arch)'
                 else:
-                    query += '@arch="%s"' % arch
-                query += '][1]'
+                    query += u'@arch="%s"' % arch
+                query += u'][1]'
 
                 return query
 
@@ -103,7 +104,7 @@ class DB(object):
                 elements = tree.xpath(query)
                 if len(elements) > 0:
                     path_root = None
-                    path_roots = tree.xpath('/guestconv/path-root[1]')
+                    path_roots = tree.xpath(u'/guestconv/path-root[1]')
                     if len(path_roots) > 0:
                         path_root = path_roots[0].text.strip()
                     return (elements[0], path_root)
@@ -111,17 +112,17 @@ class DB(object):
 
     def match_capability(self, name, arch, h, root):
         """Match the capability with name and arch for the given root."""
-        (cap, dummy) = self._match_element('capability', name, arch, h, root)
+        (cap, dummy) = self._match_element(u'capability', name, arch, h, root)
         if cap is None:
             return None
 
         out = {}
-        for dep in cap.xpath('dep'):
+        for dep in cap.xpath(u'dep'):
             props = {}
 
-            name = dep.get('name')
-            minversion = dep.get('minversion')
-            ifinstalled = dep.get('ifinstalled')
+            name = dep.get(u'name')
+            minversion = dep.get(u'minversion')
+            ifinstalled = dep.get(u'ifinstalled')
 
             name.strip()
             if minversion:
@@ -129,28 +130,30 @@ class DB(object):
             if ifinstalled:
                 ifinstalled.strip()
 
-            props['minversion'] = minversion
-            props['ifinstalled'] = ifinstalled in ('1', 'yes')
+            props[u'minversion'] = minversion
+            props[u'ifinstalled'] = ifinstalled in ('1', 'yes')
             out[name] = props
 
         return out
 
     def match_app(self, name, arch, h, root):
         "Match the app with name and arch for the given root."""
-        (app, path_root) = self._match_element('app', name, arch, h, root)
+        (app, path_root) = self._match_element(u'app', name, arch, h, root)
         if app is None:
             return (None, None)
 
-        paths = app.xpath('path[1]')
+        paths = app.xpath(u'path[1]')
         if len(paths) == 0:
-            raise DBParseError('app is missing a path element')
+            raise DBParseError(_(u'app %(name)s for root %(root)s is ' +
+                                 u'missing a path element') %
+                               {u'name': name, u'root': root})
         if path_root:
             path = os.path.join(path_root, paths[0].text.strip())
         else:
             path = paths[0].text.strip()
 
         deps = []
-        for dep in app.xpath('dep'):
+        for dep in app.xpath(u'dep'):
             deps.append(dep.text.strip())
 
         return (path, deps)
