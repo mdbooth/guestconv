@@ -265,7 +265,8 @@ class Converter(object):
                 converter = self._converters[name]
             except KeyError:
                 raise guestconv.exception.InvalidConversion \
-                    (u'root %s specified in desc does not exist' % name)
+                    (_(u'root %(root)s specified in desc does not exist') %
+                     {u'root': name})
 
             devices = []
             for device in root.xpath(u'device'):

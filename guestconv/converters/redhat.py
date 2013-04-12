@@ -20,8 +20,8 @@
 import re
 
 from guestconv.exception import *
-
 from guestconv.converters.base import BaseConverter
+from guestconv.lang import _
 
 # libguestfs currently returns all exceptions as RuntimeError. We hope this
 # might be improved in the future, but in the meantime we capture the intention
@@ -42,21 +42,25 @@ def augeas_error(h, ex):
                 m = re.match(u'^%s/(.*)$' % error, detail_path)
                 detail[m.group(1)] = h.aug_get(detail_path)
 
-            msg += u'augeas error for %s' % file_path
+            msg += _(u'augeas error for %(path)s') % {u'path': file_path}
             if u'message' in detail:
                 msg += ': %s' % detail[u'message']
             msg += '\n'
 
             if u'pos' in detail and u'line' in detail and u'char' in detail:
-                msg += u'error at line %s, char %s, file position %s\n' % \
-                       (detail[u'line'], detail[u'char'], detail[u'pos'])
+                msg += (_(u'error at line %(line)s, char %(char)s, file position %(pos)s') %
+                        {u'line': detail[u'line'],
+                         u'char': detail[u'char'],
+                         u'pos': detail[u'pos']}) + '\n'
 
             if u'lens' in detail:
-                msg += u'augeas lens: %s\n' % detail[u'lens']
+                msg += (_(u'augeas lens: %(lens)s') %
+                        {u'lens': detail[u'lens']} + '\n')
     except GuestFSException as new:
         raise ConversionError(
-                u'error generating augeas error: %s\n' % new +
-                u'original error: %s' % ex)
+                _(u'error generating augeas error: %(error)s') %
+                {u'error': new} + '\n' +
+                _(u'original error: %(error)s') % {u'error': ex})
 
     msg = msg.strip()
 
@@ -76,7 +80,8 @@ class Grub(object):
                 return m.group(1)
 
         raise ConversionError(
-            u"grubby didn't return an initrd for kernel %s" % path)
+            _(u"grubby didn't return an initrd for kernel %(kernel)s") %
+            {u'kernel': path})
 
 
 # Methods for inspecting and manipulating grub legacy
@@ -165,8 +170,8 @@ class GrubLegacy(Grub):
             if h.exists(kernel):
                 kernels.append(kernel)
             else:
-                self._logger.warn(u"grub refers to %s, which doesn't exist" %
-                                  kernel)
+                self._logger.warn(_(u"grub refers to %(kernel)s, which doesn't exist") %
+                                  {u'kernel': kernel})
 
         return kernels
 
@@ -312,8 +317,9 @@ class RedHat(BaseConverter):
             except BootLoaderNotFound:
                 pass # Try the next one
 
-        raise ConversionError(u'Did not detect a bootloader for root %s' %
-                              self._root)
+        raise ConversionError(_(u"Didn't detect a bootloader for root %(root)s") %
+                              {u'root': self._root})
 
     def convert(self, bootloaders, devices):
-        self._logger.info('Converting root %s' % self._root)
+        self._logger.info(_(u'Converting root %(name)s') %
+                          {u'name': self._root})

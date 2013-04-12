@@ -18,9 +18,9 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 import os.path
-
 import lxml.etree as ET
 
+from guestconv.lang import _
 
 class DBParseError(Exception): pass
 
@@ -48,7 +48,7 @@ class DB(object):
             try:
                 self._trees.append(ET.parse(path))
             except ET.ParseError as e:
-                raise DBParseError(u'Parse error in %(path)s: %(error)s' %
+                raise DBParseError(_(u'Parse error in %(path)s: %(error)s') % \
                                    {u'path': path, u'error': e.message})
 
     def _match_element(self, type_, name, arch, h, root):
@@ -88,7 +88,7 @@ class DB(object):
         os     = h.inspect_get_type(root)
         distro = h.inspect_get_distro(root)
         major  = h.inspect_get_major_version(root)
-        minor  = h.inspect_get_minor_version(root) 
+        minor  = h.inspect_get_minor_version(root)
 
         queries = []
         if major is not None:
@@ -144,8 +144,7 @@ class DB(object):
 
         paths = app.xpath(u'path[1]')
         if len(paths) == 0:
-            raise DBParseError(_(u'app %(name)s for root %(root)s is ' +
-                                 u'missing a path element') %
+            raise DBParseError(_(u'app %(name)s for root %(root)s is missing a path element') %
                                {u'name': name, u'root': root})
         if path_root:
             path = os.path.join(path_root, paths[0].text.strip())
