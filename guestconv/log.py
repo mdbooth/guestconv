@@ -21,8 +21,9 @@ import logging
 import os
 
 class FunctionWrappingHandler(logging.Handler):
-    """A Handler that delegates the responsibility of
-    writing a log message to another function."""
+
+    """A Handler that delegates the responsibility of writing a log message."""
+
     def __init__(self, logFunc):
         logging.Handler.__init__(self)
         self._logFunc = logFunc
@@ -32,8 +33,7 @@ class FunctionWrappingHandler(logging.Handler):
         self._logFunc(record.levelno,msgStr)
 
 def get_logger_object( loggerOrFunc):
-    """Helper function to get a logging.Logger object that guestconv
-    classes can cache locally.
+    """Get a logging.Logger object that guestconv classes can cache locally.
 
     Three cases:
     * loggerOrFunc is a logging.Logger.  Then just return the logger.
@@ -44,6 +44,7 @@ def get_logger_object( loggerOrFunc):
       function.  Note that function takes two arguments, an integer
       (the logging level e.g. logging.WARNING) and the log message
       string.
+
     """
 
     if isinstance(loggerOrFunc,logging.Logger):

@@ -26,6 +26,22 @@ class DBParseError(Exception): pass
 
 
 class DB(object):
+
+    """A database of additional software required during conversion.
+
+    During the conversion process, it may be necessary to install new software
+    to enable certain functionality. The software required will be different for
+    different operation systems. This class allows that information to be
+    abstracted into a separate XML document.
+
+    Several XML documents can be specified. They are searched for a match in
+    order, meaning a match in an earlier document overrides a match in a later
+    document.
+
+    :db_paths: A list containing the paths to DB XML documents.
+
+    """
+
     def __init__(self, db_paths):
         self._trees = []
         for path in db_paths:
@@ -94,6 +110,7 @@ class DB(object):
         return (None, None)
 
     def match_capability(self, name, arch, h, root):
+        """Match the capability with name and arch for the given root."""
         (cap, dummy) = self._match_element('capability', name, arch, h, root)
         if cap is None:
             return None
@@ -119,6 +136,7 @@ class DB(object):
         return out
 
     def match_app(self, name, arch, h, root):
+        "Match the app with name and arch for the given root."""
         (app, path_root) = self._match_element('app', name, arch, h, root)
         if app is None:
             return (None, None)

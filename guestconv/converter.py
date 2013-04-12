@@ -25,9 +25,18 @@ import guestconv.exception
 import guestconv.db
 import guestconv.log
 
-# Helper to execute a block of code with a specific root mounted in the
-# libguestfs handle
 class RootMounted(object):
+
+    """Execute a block of code with a specific libguestfs root mounted.
+
+    Mount a root which was previously detected by inspection in the libguestfs
+    handle, and initialise augeas in that root. Unmount the root on exit.
+
+    :h: The libguestfs handle.
+    :root: The libguestfs root to mount.
+
+    """
+
     def __init__(self, h, root):
         self._h = h
         self._root = root
@@ -51,8 +60,8 @@ class RootMounted(object):
 
 
 class Converter(object):
-    """A Converter is capable of converting (possibly
-    multi-boot/multi-OS) disk image(s) to a target hypervisor.
+
+    """Convert a guest's disk images(s) to run on a target hypervisor.
 
     A logging.Logger object *or* function may be passed in.  If a
     function is given, the function will receive all log messages
@@ -73,6 +82,7 @@ class Converter(object):
     :param target: string indicating the hypervisor.
     :param db_paths: list of filenames (xml databases describing capabilities)
     :param logger: optional logging.Logger object or just a function
+
     """
 
     def __init__(self, target, db_paths, logger=None):
@@ -86,6 +96,8 @@ class Converter(object):
         self._logger.log( 5 , u'Converter __init_() completed' )
 
     def __del__(self):
+        """Close the libguestfs handle when garbage collected."""
+
         self._h.close()
 
     def add_drive(self, path, hint=None):
@@ -102,13 +114,15 @@ class Converter(object):
             self._h.add_drive(path)
 
     def inspect(self):
-        """Inspect the drive, record needed transformations (to
+        """Inspect the guest image(s) and return conversion options.
+
+        Inspect the drive, record needed transformations (to
         make the OS(es) bootable by the target hypervisor) in the XML
         document which is returned to the caller.  Gracefully handles
         multi-boot (meaning there are multiple "root" partitions and
         possibly multi-OS'es).
 
-        This is a read-only operation.  <-- TODO correct?
+        This is a read-only operation.
 
         :returns:  XML document (a string)
 
@@ -218,11 +232,11 @@ class Converter(object):
         return self._inspection
 
     def convert(self, desc):
-        """Do the conversion indicated by desc, an XML document.  The
-        virtual image will be modified in place.
+        """Convert the guest image(s).
 
-        Note that desc may simply be the XML returned by inpsect(), or
-        a modified version of it.
+        Do the conversion indicated by desc, an XML document.  The virtual image
+        will be modified in place. Note that desc may simply be the XML returned
+        by inspect(), or a modified version of it.
 
         :param desc:  XML document string
         :returns:  TODO
