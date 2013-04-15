@@ -17,6 +17,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+import errno
 import os
 import os.path
 import tempfile
@@ -32,6 +33,15 @@ TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'tdl
 IMG_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'images')
 
 def build_tdl(tdl):
+    # Ensure the image directory exists
+    try:
+        os.makedirs(IMG_DIR)
+    except OSError as ex:
+        if ex.errno == errno.EEXIST and os.path.isdir(IMG_DIR):
+            pass
+        else:
+            raise ex
+
     image   = os.path.join(IMG_DIR, tdl.replace("tdl", "img"))
     if os.path.exists(image):
         print "image %s exists, skipping creation" % image
