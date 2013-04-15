@@ -21,15 +21,16 @@ import guestfs
 import unittest
 
 import guestconv.db
-import guestconv.test.base
+
+import rhel_stub
 
 class DBParseErrorTestCase(unittest.TestCase):
     def runTest(self):
         with self.assertRaises(guestconv.db.DBParseError):
-            guestconv.db.DB(['guestconv/test/data/db-parse-error.db'])
+            guestconv.db.DB(['test/data/db/parse-error.db'])
 
 
-class DBLookupTestCase(guestconv.test.base.RHELTestCase):
+class DBLookupTestCase(rhel_stub.RHELStubTestCase):
     @classmethod
     def setUpClass(cls):
         super(DBLookupTestCase, cls).setUpClass()
@@ -49,7 +50,7 @@ class DBLookupTestCase(guestconv.test.base.RHELTestCase):
     def setUp(self):
         super(DBLookupTestCase, self).setUp()
 
-        self.db = guestconv.db.DB(['guestconv/test/data/db-override.db',
+        self.db = guestconv.db.DB(['test/data/db/override.db',
                                    'conf/guestconv.db'])
 
     

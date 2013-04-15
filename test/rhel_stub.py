@@ -21,7 +21,7 @@ import guestfs
 import tempfile
 import unittest
 
-class RHELTestCase(unittest.TestCase):
+class RHELStubTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls._img = tempfile.NamedTemporaryFile(prefix='guestconv-test.')
@@ -73,11 +73,11 @@ LABEL=ROOT /home btrfs subvol=home 0 0
 
         h.write('/etc/sysconfig/network', 'HOSTNAME=rhel-test.example.com\n')
 
-        h.upload('guestconv/test/data/rhel-name.db', '/var/lib/rpm/Name')
-        h.upload('guestconv/test/data/rhel-packages.db',
+        h.upload('test/data/stub-image/rhel-name.db', '/var/lib/rpm/Name')
+        h.upload('test/data/stub-image/rhel-packages.db',
                  '/var/lib/rpm/Packages')
 
-        h.upload('guestconv/test/data/bin-x86_64-dynamic', '/bin/ls')
+        h.upload('test/data/stub-image/bin-x86_64-dynamic', '/bin/ls')
 
         h.mkdir('/boot/grub')
         h.touch('/boot/grub/grub.conf')
