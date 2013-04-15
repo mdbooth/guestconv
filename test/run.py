@@ -19,8 +19,9 @@
 
 import unittest
 
+import os.path
 import sys
-sys.path.append("../guestconv/")
+sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 
 import test_helper
 test_helper.TestHelper.init()
