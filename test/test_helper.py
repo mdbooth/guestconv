@@ -45,7 +45,7 @@ def build_tdl(tdl):
     image   = os.path.join(IMG_DIR, tdl.replace("tdl", "img"))
     if os.path.exists(image):
         print "image %s exists, skipping creation" % image
-        return TestImage(image)
+        return TestImage('rhev', image)
     stdoutf = tempfile.TemporaryFile()
     # requires root privs:
     popen   = subprocess.Popen([OZ_BIN, "-s", image, os.path.join(TDL_DIR, tdl)], stdout=stdoutf, stderr=stdoutf)
@@ -56,7 +56,7 @@ def build_tdl(tdl):
     print stdout
     # TODO analyze stdout/stderr/exitcode for errors
 
-    return TestImage(image)
+    return TestImage('rhev', image)
 
 def logger(level, msg):
     print msg
@@ -78,8 +78,8 @@ class TestImage:
 
     # def snapshot(self): TODO
 
-    def inspect(self, target):
-        return self.converter.inspect(target)
+    def inspect(self):
+        return self.converter.inspect()
 
     def list_kernels(self):
         # TODO parameterize
@@ -88,8 +88,8 @@ class TestImage:
         grub = guestconv.converters.redhat.Grub2BIOS(self.converter._h, '/dev/VolGroup00/LogVol00', logger)
         return grub.list_kernels()
 
-    def __init__(self, image=None):
-        self.converter = Converter('rhev', ['conf/guestconv.db'], logger)
+    def __init__(self, target, image=None):
+        self.converter = Converter(target, ['conf/guestconv.db'], logger)
         if image == None:
             self.drive = tempfile.NamedTemporaryFile()
         else:

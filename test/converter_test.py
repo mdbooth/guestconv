@@ -25,14 +25,14 @@ from test_helper import TestImage
 
 class ConverterTest(unittest.TestCase):
     def setUp(self):
-        self.img = TestImage()
+        self.img = TestImage('rhev')
         self.img.open()
 
     def tearDown(self):
         self.img.close()
 
     def testInspect(self):
-        xml = self.img.inspect('rhev')
+        xml = self.img.inspect()
         xmldoc = minidom.parseString(xml)
         self.assertEqual(1, xmldoc.getElementsByTagName('guestconv').length)
 
