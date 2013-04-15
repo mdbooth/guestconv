@@ -89,7 +89,7 @@ class TestImage:
         return grub.list_kernels()
 
     def __init__(self, image=None):
-        self.converter = Converter(['conf/guestconv.db'], logger)
+        self.converter = Converter('rhev', ['conf/guestconv.db'], logger)
         if image == None:
             self.drive = tempfile.NamedTemporaryFile()
         else:
