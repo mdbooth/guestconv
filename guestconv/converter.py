@@ -146,7 +146,7 @@ class Converter(object):
                     self._logger.debug(
                         u'Converter %s unsupported for root %s' % \
                               (converter, root))
-                    next
+                    continue
 
                 with RootMounted(h, root):
                     (root_bl, root_info, root_devices) = converter.inspect()
