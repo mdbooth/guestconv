@@ -210,7 +210,7 @@ class Grub2BIOS(Grub2):
     def inspect(self):
         # Find the grub device
         disk = None
-        mounts = h.inspect_get_mountpoints(root)
+        mounts = self._h.inspect_get_mountpoints(self._root)
         for path in [u'/boot/grub2', u'/boot', u'/']:
             if path in mounts:
                 m = re.match(u'^/dev/([a-z]*)[0-9]*$', mounts[path])
