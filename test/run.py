@@ -28,11 +28,13 @@ test_helper.TestHelper.init()
 
 import converter_test
 import redhat_converter_test
+import debian_converter_test
 import db
 
 suite = unittest.TestSuite()
 suite.addTest(unittest.makeSuite(converter_test.ConverterTest))
 suite.addTest(unittest.makeSuite(redhat_converter_test.GrubTest))
+suite.addTest(unittest.makeSuite(debian_converter_test.GrubTest))
 
 # DB tests
 suite.addTest(db.DBParseErrorTestCase())
