@@ -17,6 +17,9 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+import os.path
+topdir = os.path.join(os.path.dirname(__file__), os.pardir)
+
 import guestfs
 import unittest
 
@@ -27,7 +30,7 @@ import rhel_stub
 class DBParseErrorTestCase(unittest.TestCase):
     def runTest(self):
         with self.assertRaises(guestconv.db.DBParseError):
-            guestconv.db.DB(['test/data/db/parse-error.db'])
+            guestconv.db.DB(['%s/test/data/db/parse-error.db' % topdir])
 
 
 class DBLookupTestCase(rhel_stub.RHELStubTestCase):
@@ -50,8 +53,8 @@ class DBLookupTestCase(rhel_stub.RHELStubTestCase):
     def setUp(self):
         super(DBLookupTestCase, self).setUp()
 
-        self.db = guestconv.db.DB(['test/data/db/override.db',
-                                   'conf/guestconv.db'])
+        self.db = guestconv.db.DB(['%s/test/data/db/override.db' % topdir,
+                                   '%s/conf/guestconv.db' % topdir])
 
     
     def tearDown(self):

@@ -17,6 +17,9 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+import os.path
+topdir = os.path.join(os.path.dirname(__file__), os.pardir)
+
 import guestfs
 import tempfile
 import unittest
@@ -73,11 +76,13 @@ LABEL=ROOT /home btrfs subvol=home 0 0
 
         h.write('/etc/sysconfig/network', 'HOSTNAME=rhel-test.example.com\n')
 
-        h.upload('test/data/stub-image/rhel-name.db', '/var/lib/rpm/Name')
-        h.upload('test/data/stub-image/rhel-packages.db',
+        h.upload('%s/test/data/stub-image/rhel-name.db' % topdir,
+                 '/var/lib/rpm/Name')
+        h.upload('%s/test/data/stub-image/rhel-packages.db' % topdir,
                  '/var/lib/rpm/Packages')
 
-        h.upload('test/data/stub-image/bin-x86_64-dynamic', '/bin/ls')
+        h.upload('%s/test/data/stub-image/bin-x86_64-dynamic' % topdir,
+                 '/bin/ls')
 
         h.mkdir('/boot/grub')
         h.touch('/boot/grub/grub.conf')

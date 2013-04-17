@@ -28,6 +28,8 @@ import guestconv
 from guestconv.converter import Converter
 import guestconv.converters.redhat
 
+topdir = os.path.join(os.path.dirname(__file__), os.pardir)
+
 OZ_BIN  = '/usr/bin/oz-install'
 TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'tdls')
 IMG_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'images')
@@ -89,7 +91,8 @@ class TestImage:
         return grub.list_kernels()
 
     def __init__(self, target, image=None):
-        self.converter = Converter(target, ['conf/guestconv.db'], logger)
+        self.converter = Converter(target, ['%s/conf/guestconv.db' % topdir],
+                                   logger)
         if image == None:
             self.drive = tempfile.NamedTemporaryFile()
         else:
