@@ -304,7 +304,6 @@ class RedHat(BaseConverter):
         }
 
         self._bootloader = self._inspect_bootloader()
-        print self._bootloader.list_kernels()
 
         bl_disk, bl_props = self._bootloader.inspect()
 
