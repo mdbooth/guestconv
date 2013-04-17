@@ -26,6 +26,7 @@ import subprocess
 import guestconv
 
 from guestconv.converter import Converter
+from guestconv.converter import RootMounted
 import guestconv.converters.redhat
 
 topdir = os.path.join(os.path.dirname(__file__), os.pardir)
@@ -73,8 +74,6 @@ class TestImage:
         if self.drive:
             if type(self.drive) is str:
                 self.converter.add_drive(self.drive)
-                self.converter._h.add_drive_opts(self.drive, format="raw", readonly=0)
-                self.converter._h.launch()
             else:
                 self.converter.add_drive(self.drive.name)
 
@@ -84,11 +83,10 @@ class TestImage:
         return self.converter.inspect()
 
     def list_kernels(self):
-        # TODO parameterize
-        self.converter._h.mount('/dev/VolGroup00/LogVol00', '/')
-        self.converter._h.mount('/dev/vdb2', '/boot')
-        grub = guestconv.converters.redhat.Grub2BIOS(self.converter._h, '/dev/VolGroup00/LogVol00', logger)
-        return grub.list_kernels()
+        with RootMounted(self.converter._h, '/dev/VolGroup00/LogVol00'):
+            grub = guestconv.converters.redhat.Grub2BIOS(
+                self.converter._h, '/dev/VolGroup00/LogVol00', logger)
+            return grub.list_kernels()
 
     def __init__(self, target, image=None):
         self.converter = Converter(target, ['%s/conf/guestconv.db' % topdir],

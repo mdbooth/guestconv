@@ -34,6 +34,7 @@ class GrubTest(unittest.TestCase):
 
     @unittest.skipUnless(TestHelper.has_image(F17IMG), "image does not exist")
     def testListKernels(self):
+        self.img.inspect()
         kernels = self.img.list_kernels()
         self.assertEqual(1, len(kernels))
         self.assertEqual("/boot/vmlinuz-3.3.4-5.fc17.x86_64", kernels[0])
