@@ -235,13 +235,12 @@ class Grub2EFI(Grub2):
         for device in h.list_devices():
             try:
                 guid = h.part_get_gpt_type(device, 1)
+                if guid == u'C12A7328-F81F-11D2-BA4B-00A0C93EC93B':
+                    self._disk = device
+                    break
             except GuestFSException:
                 # Not EFI if partition isn't GPT
                 next
-
-            if guid == u'C12A7328-F81F-11D2-BA4B-00A0C93EC93B':
-                self._disk = device
-                break
 
         # Check we found an EFI boot partition
         if self._disk is None:
