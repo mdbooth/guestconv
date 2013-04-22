@@ -26,7 +26,7 @@
 
 /build
 /dist
+/test/.coverage
 /test/data/images
-
 /locale/*.mo
 /locale/install/
