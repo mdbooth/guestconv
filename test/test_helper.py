@@ -20,18 +20,25 @@
 import errno
 import os
 import os.path
+import re
 import tempfile
 import subprocess
 
 import guestconv
 
+import xml.etree.ElementTree as et
 from guestconv.converter import Converter
 from guestconv.converter import RootMounted
 import guestconv.converters.redhat
 
 topdir = os.path.join(os.path.dirname(__file__), os.pardir)
 
-OZ_BIN  = '/usr/bin/oz-install'
+# requires root privs:
+OZ_BIN        = '/usr/bin/oz-install'
+VIRT_INST_BIN = '/usr/bin/virt-install'
+VIRSH_BIN     = '/usr/bin/virsh'
+LIBVIRT_LEASES_FILE = '/var/lib/libvirt/dnsmasq/default.leases'
+
 TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'tdls')
 IMG_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'images')
 
@@ -75,6 +82,15 @@ class TestImage:
         if self.drive_name:
             self.converter.add_drive(self.drive_name)
 
+    def launch(self):
+        # TODO destroy domain if already running (or skip) ?
+        name = os.path.split(self.drive_name)[-1].replace(".img", "");
+        stdout = run_cmd([VIRT_INST_BIN, '--connect', 'qemu:///system',
+                                         '--name', name, '--ram', '1024',
+                                         '--vcpus', '1', '--disk', self.drive_name,
+                                         '--accelerate', '--boot', 'hd', '--noautoconsole'])
+        return TestInstance(name, self)
+
     def inspect(self):
         return self.converter.inspect()
 
@@ -94,6 +110,26 @@ class TestImage:
         else:
             self.drive = None
             self.drive_name = image
+
+class TestInstance:
+    def __init__(self, name, image):
+        self.name  = name
+        self.image = image
+
+        # retrieve instance mac
+        self.xml = run_cmd([VIRSH_BIN, 'dumpxml', name])
+        xmldoc = et.fromstring(self.xml)
+        self.mac = xmldoc.find('./devices/interface/mac')
+        self.mac = self.mac.get('address')
+
+        # retrieve instance ip
+        leases = open(LIBVIRT_LEASES_FILE, "r")
+        for line in leases:
+          m = re.match("[^\s]*\s*%s\s*([^\s]*).*" % self.mac, line)
+          if m:
+            self.ip = m.group(1)
+            break
+        leases.close()
 
 class TestHelper:
   images    = []
