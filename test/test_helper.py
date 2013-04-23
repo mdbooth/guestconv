@@ -37,6 +37,7 @@ topdir = os.path.join(os.path.dirname(__file__), os.pardir)
 OZ_BIN        = '/usr/bin/oz-install'
 VIRT_INST_BIN = '/usr/bin/virt-install'
 VIRSH_BIN     = '/usr/bin/virsh'
+QEMU_IMG_BIN  = '/usr/bin/qemu-img'
 LIBVIRT_LEASES_FILE = '/var/lib/libvirt/dnsmasq/default.leases'
 
 TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'tdls')
@@ -81,6 +82,13 @@ class TestImage:
     def open(self):
         if self.drive_name:
             self.converter.add_drive(self.drive_name)
+
+    def snapshot(self, name):
+        stdout = run_cmd([QEMU_IMG_BIN, 'snapshot', '-c', name, self.drive_name])
+        path,snapshot = os.path.split(self.drive_name)
+        snapshot = name + '-' + snapshot
+        img = os.path.join(path, snapshot)
+        return TestImage('rhev', img)
 
     def launch(self):
         # TODO destroy domain if already running (or skip) ?
