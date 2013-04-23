@@ -38,6 +38,7 @@ OZ_BIN        = '/usr/bin/oz-install'
 VIRT_INST_BIN = '/usr/bin/virt-install'
 VIRSH_BIN     = '/usr/bin/virsh'
 QEMU_IMG_BIN  = '/usr/bin/qemu-img'
+SSH_BIN       = '/usr/bin/ssh'
 LIBVIRT_LEASES_FILE = '/var/lib/libvirt/dnsmasq/default.leases'
 
 TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'tdls')
@@ -138,6 +139,14 @@ class TestInstance:
             self.ip = m.group(1)
             break
         leases.close()
+
+    def ssh_cmd(self, cmd):
+        run_cmd([SSH_BIN, '-i', 'test/data/key',
+                  "-o", "ServerAliveInterval=30",
+                  "-o", "StrictHostKeyChecking=no",
+                  "-o", "UserKnownHostsFile=/dev/null",
+                  "-o", "PasswordAuthentication=no",
+                  ("guest@%s" % self.ip), cmd])
 
 class TestHelper:
   images    = []
