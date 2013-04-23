@@ -35,6 +35,15 @@ OZ_BIN  = '/usr/bin/oz-install'
 TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'tdls')
 IMG_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'images')
 
+def run_cmd(cmd):
+    stdoutf = tempfile.TemporaryFile()
+    popen = subprocess.Popen(cmd, stdout=stdoutf, stderr=stdoutf)
+    popen.wait()
+    stdoutf.seek(0)
+    stdout = stdoutf.read()
+    stdoutf.close()
+    return stdout
+
 def build_tdl(tdl):
     # Ensure the image directory exists
     try:
@@ -49,15 +58,8 @@ def build_tdl(tdl):
     if os.path.exists(image):
         print "image %s exists, skipping creation" % image
         return TestImage('rhev', image)
-    stdoutf = tempfile.TemporaryFile()
-    # requires root privs:
-    popen   = subprocess.Popen([OZ_BIN, "-s", image, os.path.join(TDL_DIR, tdl)], stdout=stdoutf, stderr=stdoutf)
-    popen.wait()
-    stdoutf.seek(0)
-    stdout = stdoutf.read()
-    stdoutf.close()
-    print stdout
-    # TODO analyze stdout/stderr/exitcode for errors
+
+    print run_cmd([OZ_BIN, "-s", image, os.path.join(TDL_DIR, tdl)])
 
     return TestImage('rhev', image)
 
@@ -67,17 +69,11 @@ def logger(level, msg):
 class TestImage:
     def close(self):
         if self.drive:
-            if type(self.drive) is not str:
-                self.drive.close()
+            self.drive.close()
 
     def open(self):
-        if self.drive:
-            if type(self.drive) is str:
-                self.converter.add_drive(self.drive)
-            else:
-                self.converter.add_drive(self.drive.name)
-
-    # def snapshot(self): TODO
+        if self.drive_name:
+            self.converter.add_drive(self.drive_name)
 
     def inspect(self):
         return self.converter.inspect()
@@ -93,8 +89,11 @@ class TestImage:
                                    logger)
         if image == None:
             self.drive = tempfile.NamedTemporaryFile()
+            self.drive_name = self.drive.name
+
         else:
-            self.drive = image
+            self.drive = None
+            self.drive_name = image
 
 class TestHelper:
   images    = []
