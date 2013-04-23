@@ -36,6 +36,12 @@ class ConverterTest(unittest.TestCase):
         xmldoc = minidom.parseString(xml)
         self.assertEqual(1, xmldoc.getElementsByTagName('guestconv').length)
 
+    def testReentrantInspect(self):
+        # we should just get the same object back if inspect multiple times
+        xml1 = self.img.inspect()
+        xml2 = self.img.inspect()
+        self.assertTrue(xml1 is xml2)
+
     def testConvert(self):
         # self.c.convert('TODO')
         self.assertTrue(1 == 1)
