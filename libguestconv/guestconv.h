@@ -12,7 +12,7 @@ typedef struct {
 } GuestConv;
 
 GuestConv *
-guestconv_init(char *database_location);
+guestconv_init(char *target, char *database_location);
 
 int
 guestconv_err(GuestConv *gc);
@@ -21,7 +21,7 @@ void
 guestconv_add_drive(GuestConv *gc, char *drive);
 
 char *
-guestconv_inspect(GuestConv *gc, char *target);
+guestconv_inspect(GuestConv *gc);
 
 void
 guestconv_convert(GuestConv *gc, char *description);

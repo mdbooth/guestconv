@@ -29,6 +29,8 @@ fi
 
 popd -n
 
+TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
+
 image_to_convert=$HOME/tmp/Fedora18-Cloud-x86_64-20130115.raw
-echo ./test $HOME/tmp/database.db $image_to_convert
-./example $HOME/tmp/database.db $image_to_convert
+echo ./example $TOP_DIR/conf/guestconv.db $image_to_convert
+./example $TOP_DIR/conf/guestconv.db $image_to_convert

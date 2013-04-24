@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     database = argv[1];
     drive = argv[2];
 
-    gc = guestconv_init(database);
+    gc = guestconv_init("rhev", database);
     if (guestconv_err(gc)) {
 	fprintf(stderr, "error initializing guestconv: %s\n", gc->error);
 	return 1;
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 	return 1;
     }
 
-    description = guestconv_inspect(gc, "rhev");
+    description = guestconv_inspect(gc);
     if (guestconv_err(gc)) {
 	fprintf(stderr, "error getting description: %s\n", gc->error);
 	return 1;

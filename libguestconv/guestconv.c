@@ -73,7 +73,7 @@ guestconv_err(GuestConv *gc)
 }
 
 GuestConv *
-guestconv_init(char *database_location)
+guestconv_init(char *target, char *database_location)
 {
     PyObject *module_name, *pyth_module, *pyth_func;
     PyObject *pyth_val;
@@ -101,7 +101,7 @@ guestconv_init(char *database_location)
     /* pyth_func is a new reference */
 
     if (pyth_func && PyCallable_Check(pyth_func)) {
-        pyth_val = PyObject_CallFunction(pyth_func, "[s]", "/home/imain/src/guestconv/conf/guestconv.db");
+        pyth_val = PyObject_CallFunction(pyth_func, "s[s]", target, database_location);
 
         if (pyth_val != NULL) {
             gc->gc_inst = pyth_val;
@@ -131,7 +131,7 @@ guestconv_add_drive(GuestConv *gc, char *drive)
 }
 
 char *
-guestconv_inspect(GuestConv *gc, char *target)
+guestconv_inspect(GuestConv *gc)
 {
     PyObject *ret;
     char *str = NULL;
@@ -141,7 +141,7 @@ guestconv_inspect(GuestConv *gc, char *target)
         return NULL;
     }
 
-    ret = PyObject_CallMethod(gc->gc_inst, "inspect", "s", target);
+    ret = PyObject_CallMethod(gc->gc_inst, "inspect", NULL);
     guestconv_check_pyerr(gc);
 
     if (!guestconv_err(gc))
