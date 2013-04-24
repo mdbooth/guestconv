@@ -3,6 +3,8 @@
 
 #include <Python.h>
 
+typedef void (*GuestConvLoggerFunc)(int level, char *message);
+
 typedef struct {
     PyObject *pyth_module;
     PyObject *gc_inst;
@@ -11,8 +13,10 @@ typedef struct {
     char *backtrace;
 } GuestConv;
 
+
+/* logger_func here can be NULL if you don't wish to have any logging callbacks. */
 GuestConv *
-guestconv_init(char *target, char *database_location);
+guestconv_init(char *target, char *database_location, GuestConvLoggerFunc logger_func);
 
 int
 guestconv_err(GuestConv *gc);

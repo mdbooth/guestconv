@@ -2,6 +2,12 @@
 #include <stdio.h>
 #include "guestconv.h"
 
+static void
+logger(int level, char *msg)
+{
+    fprintf(stderr, "EXAMPLE LOG: LVL %d - %s\n", level, msg);
+}
+
 int main(int argc, char *argv[])
 {
     GuestConv *gc;
@@ -17,7 +23,7 @@ int main(int argc, char *argv[])
     database = argv[1];
     drive = argv[2];
 
-    gc = guestconv_init("rhev", database);
+    gc = guestconv_init("rhev", database, logger);
     if (guestconv_err(gc)) {
 	fprintf(stderr, "error initializing guestconv: %s\n", gc->error);
 	return 1;
