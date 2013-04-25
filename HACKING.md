@@ -22,7 +22,7 @@ is acceptable.  A plain-old 'hello' is not.
  * Follow the sphinx syntax for describing parameters, return values
    and exceptions.
 
-## Internationalisation
+## String formatting and internationalisation
 
 All strings which might be displayed to an end user must be translated.
 This includes:
@@ -45,14 +45,21 @@ An example of a simple translation is:
 
   _(u'This is a simple translation')
 
-If a string includes substitutions, these must substituted by name. This helps
-translators in a couple of ways: it gives them an indication of what is being
-substituted, and it allows them to re-order the substitutions. For example:
+All string substitutions must use string.format(), and must substitute by name.
+This helps translators in a couple of ways: it gives them an indication of what
+is being substituted, and it allows them to re-order the substitutions. For
+example:
 
-  _(u'Error in %(name) module: %(msg)') % {u'name': module, u'msg': msg}
+  _(u'Error in {name} module: {msg}').format(name=module, msg=msg)
 
 Note the following potential traps when making translatable strings:
 
 * translation must be done on the string before substitutions
-* translated strings may not contain a concatenation, e.g. _(u'foo ' + u'bar')
+* translated strings must be string constants
+    String constants can still be split across multiple lines for line length or
+    clearer formatting:
+        _(u'This is a string '
+          u'broken across 2 lines')
 * translated strings must not contain trailing newlines
+    Newlines can be added afterwards:
+        _('A translated error: {msg}').format(msg=msg) + u'\n'
