@@ -22,53 +22,9 @@
 import re
 
 from guestconv.exception import *
+from guestconv.converters.exception import *
 from guestconv.lang import _
-
-# libguestfs currently returns all exceptions as RuntimeError. We hope this
-# might be improved in the future, but in the meantime we capture the intention
-# with this placeholder
-GuestFSException = RuntimeError
-
-class BootLoaderNotFound(Exception): pass
-
-def augeas_error(h, ex):
-    msg = str(ex) + '\n'
-    try:
-        for error in h.aug_match(u'/augeas/files//error'):
-            m = re.match(u'^/augeas/files(/.*)/error$', error)
-            file_path = m.group(1)
-
-            detail = {}
-            for detail_path in h.aug_match(error + u'//*'):
-                m = re.match(u'^%s/(.*)$' % error, detail_path)
-                detail[m.group(1)] = h.aug_get(detail_path)
-
-            msg += _(u'augeas error for %(path)s') % {u'path': file_path}
-            if u'message' in detail:
-                msg += ': %s' % detail[u'message']
-            msg += '\n'
-
-            if u'pos' in detail and u'line' in detail and u'char' in detail:
-                msg += (_(u'error at line %(line)s, char %(char)s, file position %(pos)s') %
-                        {u'line': detail[u'line'],
-                         u'char': detail[u'char'],
-                         u'pos': detail[u'pos']}) + '\n'
-
-            if u'lens' in detail:
-                msg += (_(u'augeas lens: %(lens)s') %
-                        {u'lens': detail[u'lens']} + '\n')
-    except GuestFSException as new:
-        raise ConversionError(
-                _(u'error generating augeas error: %(error)s') %
-                {u'error': new} + '\n' +
-                _(u'original error: %(error)s') % {u'error': ex})
-
-    msg = msg.strip()
-
-    if len(msg) > 0:
-        raise ConversionError(msg)
-
-    raise ex
+from guestconv.converters.util import *
 
 
 # Functions supported by grubby, and therefore common between grub legacy and
