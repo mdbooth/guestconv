@@ -35,14 +35,6 @@ suite = unittest.TestSuite()
 suite.addTest(unittest.makeSuite(converter_test.ConverterTest))
 suite.addTest(unittest.makeSuite(redhat_converter_test.GrubTest))
 suite.addTest(unittest.makeSuite(debian_converter_test.GrubTest))
-
-# DB tests
-suite.addTest(db.DBParseErrorTestCase())
-suite.addTest(db.DBLookupTestCase("testCapabilityMatch"))
-suite.addTest(db.DBLookupTestCase("testCapabilityOverride"))
-suite.addTest(db.DBLookupTestCase("testCapabilityNoMatch"))
-suite.addTest(db.DBLookupTestCase("testAppMatch"))
-suite.addTest(db.DBLookupTestCase("testAppNoMatch"))
-suite.addTest(db.DBLookupTestCase("testAppMatchNoPathRoot"))
+suite.addTest(unittest.makeSuite(db.DBLookupTestCase))
 
 unittest.TextTestRunner(verbosity=2).run(suite)
