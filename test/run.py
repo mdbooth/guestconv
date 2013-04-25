@@ -30,11 +30,13 @@ import converter_test
 import redhat_converter_test
 import debian_converter_test
 import db
+import rpm_package
 
 suite = unittest.TestSuite()
 suite.addTest(unittest.makeSuite(converter_test.ConverterTest))
 suite.addTest(unittest.makeSuite(redhat_converter_test.GrubTest))
 suite.addTest(unittest.makeSuite(debian_converter_test.GrubTest))
 suite.addTest(unittest.makeSuite(db.DBLookupTestCase))
+suite.addTest(unittest.makeSuite(rpm_package.RpmPackageTest))
 
 unittest.TextTestRunner(verbosity=2).run(suite)
