@@ -19,6 +19,7 @@
 
 import os.path
 import lxml.etree as ET
+from itertools import product
 
 from guestconv.lang import _
 
@@ -52,62 +53,65 @@ class DB(object):
                                    {u'path': path, u'error': e.message})
 
     def _match_element(self, type_, name, arch, h, root):
-        def _match_queries(os, distro, major, minor):
-            def _match_query(os, distro, major, minor, arch):
-                query = u'/guestconv/%s[@name="%s" and @os="%s" and ' % \
-                        (type_, name, os)
-                if distro is None:
-                    query += u'not(@distro)'
-                else:
-                    query += u'@distro="%s"' % distro
-                query += u' and '
-                if major is None:
-                    query += u'not(@major)'
-                else:
-                    query += u'@major="%s"' % major
-                query += ' and '
-                if minor is None:
-                    query += u'not(@minor)'
-                else:
-                    query += u'@minor="%s"' % minor
-                query += u' and '
-                if arch is None:
-                    query += u'not(@arch)'
-                else:
-                    query += u'@arch="%s"' % arch
-                query += u'][1]'
+        def queries():
+            def _match_queries(os, distro, major, minor):
+                def _match_query(os, distro, major, minor, arch):
+                    query = []
+                    query.append(u'/guestconv/{type}[@name="{name}" and '
+                                 u'@os="{os}" and '.
+                                 format(type=type_, name=name, os=os))
+                    if distro is None:
+                        query.append(u'not(@distro)')
+                    else:
+                        query.append(u'@distro="{}"'.format(distro))
+                    query.append(u' and ')
+                    if major is None:
+                        query.append(u'not(@major)')
+                    else:
+                        query.append(u'@major="{}"'.format(major))
+                    query.append(' and ')
+                    if minor is None:
+                        query.append(u'not(@minor)')
+                    else:
+                        query.append(u'@minor="{}"'.format(minor))
+                    query.append(u' and ')
+                    if arch is None:
+                        query.append(u'not(@arch)')
+                    else:
+                        query.append(u'@arch="{}"'.format(arch))
+                    query.append(u'][1]')
 
-                return query
+                    return u''.join(query)
 
-            queries = []
-            if arch is not None:
-                queries.append(_match_query(os, distro, major, minor, arch))
-            queries.append(_match_query(os, distro, major, minor, None))
-            return queries
+                if arch is not None:
+                    yield _match_query(os, distro, major, minor, arch)
+                yield _match_query(os, distro, major, minor, None)
 
-        os     = h.inspect_get_type(root)
-        distro = h.inspect_get_distro(root)
-        major  = h.inspect_get_major_version(root)
-        minor  = h.inspect_get_minor_version(root)
+            os     = h.inspect_get_type(root)
+            distro = h.inspect_get_distro(root)
+            major  = h.inspect_get_major_version(root)
+            minor  = h.inspect_get_minor_version(root)
 
-        queries = []
-        if major is not None:
-            if minor is not None:
-                queries.extend(_match_queries(os, distro, major, minor))
-            queries.extend(_match_queries(os, distro, major, None))
-        if distro is not None:
-            queries.extend(_match_queries(os, distro, None, None))
-        queries.extend(_match_queries(os, None, None, None))
+            if major is not None:
+                if minor is not None:
+                    for i in _match_queries(os, distro, major, minor):
+                        yield i
+                for i in _match_queries(os, distro, major, None):
+                    yield i
+            if distro is not None:
+                for i in _match_queries(os, distro, None, None):
+                    yield i
+            for i in _match_queries(os, None, None, None):
+                yield i
 
-        for tree in self._trees:
-            for query in queries:
-                elements = tree.xpath(query)
-                if len(elements) > 0:
-                    path_root = None
-                    path_roots = tree.xpath(u'/guestconv/path-root[1]')
-                    if len(path_roots) > 0:
-                        path_root = path_roots[0].text.strip()
-                    return (elements[0], path_root)
+        for tree, query in product(self._trees, queries()):
+            elements = tree.xpath(query)
+            if len(elements) > 0:
+                path_root = None
+                path_roots = tree.xpath(u'/guestconv/path-root[1]')
+                if len(path_roots) > 0:
+                    path_root = path_roots[0].text.strip()
+                return (elements[0], path_root)
         return (None, None)
 
     def match_capability(self, name, arch, h, root):
