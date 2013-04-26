@@ -68,7 +68,7 @@ def build_tdl(tdl):
         print "image %s exists, skipping creation" % image
         return TestImage('rhev', image)
 
-    print run_cmd([OZ_BIN, "-s", image, os.path.join(TDL_DIR, tdl)])
+    print run_cmd([OZ_BIN, "-t", "3600", "-s", image, os.path.join(TDL_DIR, tdl)])
 
     return TestImage('rhev', image)
 
