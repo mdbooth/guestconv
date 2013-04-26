@@ -148,8 +148,9 @@ class DB(object):
 
         paths = app.xpath(u'path[1]')
         if len(paths) == 0:
-            raise DBParseError(_(u'app %(name)s for root %(root)s is missing a path element') %
-                               {u'name': name, u'root': root})
+            raise DBParseError(_(u'app {name} for root {root} is missing '
+                                 u'a path element').
+                               format(name=name, root=root))
         if path_root:
             path = os.path.join(path_root, paths[0].text.strip())
         else:
