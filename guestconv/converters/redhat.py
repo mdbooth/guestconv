@@ -17,8 +17,8 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-import itertools
 import functools
+from itertools import izip_longest
 
 from guestconv.exception import *
 from guestconv.converters.grub import *
@@ -109,7 +109,7 @@ class Package(object):
             # Split a and b into parts, and compare each part in turn
             # If 1 string is longer, but leading parts are equal, the longer
             # string is greater.
-            for pa, pb in itertools.izip_longest(_splitver(a), _splitver(b)):
+            for pa, pb in izip_longest(_splitver(a), _splitver(b)):
                 c = _numstrcmp(pa, pb)
                 if c != 0:
                     return c
