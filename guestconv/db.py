@@ -135,7 +135,7 @@ class DB(object):
                 ifinstalled.strip()
 
             props[u'minversion'] = minversion
-            props[u'ifinstalled'] = ifinstalled in ('1', 'yes')
+            props[u'ifinstalled'] = ifinstalled in (u'1', u'yes')
             out[name] = props
 
         return out
