@@ -141,7 +141,7 @@ class DB(object):
         return out
 
     def match_app(self, name, arch, h, root):
-        "Match the app with name and arch for the given root."""
+        """Match the app with name and arch for the given root."""
         app, path_root = self._match_element(u'app', name, arch, h, root)
         if app is None:
             return (None, None)
