@@ -41,6 +41,7 @@ QEMU_IMG_BIN  = '/usr/bin/qemu-img'
 SSH_BIN       = '/usr/bin/ssh'
 LIBVIRT_LEASES_FILE = '/var/lib/libvirt/dnsmasq/default.leases'
 
+OZ_CFG  = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'oz.cfg')
 TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'tdls')
 IMG_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'images')
 
@@ -63,12 +64,14 @@ def build_tdl(tdl):
         else:
             raise ex
 
-    image   = os.path.join(IMG_DIR, tdl.replace("tdl", "img"))
+    # !NOTE! image_type was introduced in oz 0.11.0,
+    #        make sure to set image_type in test/data/oz.cfg
+    image   = os.path.join(IMG_DIR, tdl.replace("tdl", "qcow2"))
     if os.path.exists(image):
         print "image %s exists, skipping creation" % image
         return TestImage('rhev', image)
 
-    print run_cmd([OZ_BIN, "-t", "3600", "-s", image, os.path.join(TDL_DIR, tdl)])
+    print run_cmd([OZ_BIN, "-t", "3600", "-s", image, '-d3', '-c', OZ_CFG, os.path.join(TDL_DIR, tdl)])
 
     return TestImage('rhev', image)
 
@@ -86,14 +89,11 @@ class TestImage:
 
     def snapshot(self, name):
         stdout = run_cmd([QEMU_IMG_BIN, 'snapshot', '-c', name, self.drive_name])
-        path,snapshot = os.path.split(self.drive_name)
-        snapshot = name + '-' + snapshot
-        img = os.path.join(path, snapshot)
-        return TestImage('rhev', img)
+        return TestSnapshot('rhev', name, self)
 
     def launch(self):
         # TODO destroy domain if already running (or skip) ?
-        name = os.path.split(self.drive_name)[-1].replace(".img", "");
+        name = os.path.split(self.drive_name)[-1].replace(".qcow2", "");
         stdout = run_cmd([VIRT_INST_BIN, '--connect', 'qemu:///system',
                                          '--name', name, '--ram', '1024',
                                          '--vcpus', '1', '--disk', self.drive_name,
@@ -147,6 +147,15 @@ class TestInstance:
                   "-o", "UserKnownHostsFile=/dev/null",
                   "-o", "PasswordAuthentication=no",
                   ("guest@%s" % self.ip), cmd])
+
+class TestSnapshot:
+    def __init__(self, name, image):
+        self.name  = name
+        self.image = image
+
+    def __del__(self):
+        # delete snapshot
+        run_cmd([QEMU_IMG_BIN, 'snapshot', '-d', self.name, self.image.drive_name])
 
 class TestHelper:
   images    = []
