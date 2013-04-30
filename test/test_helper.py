@@ -19,10 +19,12 @@
 
 import errno
 import os
+import glob
 import os.path
 import re
 import tempfile
 import subprocess
+import jinja2
 
 import guestconv
 
@@ -45,6 +47,8 @@ OZ_CFG  = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'oz.
 TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'tdls')
 IMG_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'images')
 
+jinja = jinja2.Environment(loader=jinja2.FileSystemLoader('test/data/tdls'))
+
 def run_cmd(cmd):
     stdoutf = tempfile.TemporaryFile()
     popen = subprocess.Popen(cmd, stdout=stdoutf, stderr=stdoutf)
@@ -54,29 +58,65 @@ def run_cmd(cmd):
     stdoutf.close()
     return stdout
 
-def build_tdl(tdl):
-    # Ensure the image directory exists
-    try:
-        os.makedirs(IMG_DIR)
-    except OSError as ex:
-        if ex.errno == errno.EEXIST and os.path.isdir(IMG_DIR):
-            pass
-        else:
-            raise ex
-
-    # !NOTE! image_type was introduced in oz 0.11.0,
-    #        make sure to set image_type in test/data/oz.cfg
-    image   = os.path.join(IMG_DIR, tdl.replace("tdl", "qcow2"))
-    if os.path.exists(image):
-        print "image %s exists, skipping creation" % image
-        return TestImage('rhev', image)
-
-    print run_cmd([OZ_BIN, "-t", "3600", "-s", image, '-d3', '-c', OZ_CFG, os.path.join(TDL_DIR, tdl)])
-
-    return TestImage('rhev', image)
-
 def logger(level, msg):
     print msg
+
+class TestTDLTemplate:
+    default_args = { 'name' : 'template_tdl',
+                     'description' : 'template tdl',
+                     'os' : { 'name' : 'Fedora',
+                              'version' : '17',
+                              'arch'    : 'x86_64',
+                              'install_url' : 'http://download.fedoraproject.org/pub/fedora/linux/releases/17/Fedora/x86_64/os/'
+                    }}
+
+    def __init__(self, template):
+        self.template = template.replace(TDL_DIR, "")
+        self.tdl = os.path.join(IMG_DIR, self.template.replace("tpl", ""))
+        pass
+
+    # render a tdl from this template
+    def render(self, **kwargs):
+        print "rendering template %s to tdl %s" % (self.template, self.tdl)
+        jtpl = jinja.get_template(self.template)
+        render_args = dict(TestTDLTemplate.default_args.items() + kwargs.items())
+        tdl = jtpl.render(**render_args)
+        tdlf = open(self.tdl, 'w')
+        tdlf.write(tdl)
+        tdlf.close()
+        # TODO write to template file
+        return TestTDL(self.tdl)
+
+class TestTDL:
+    def __init__(self, tdl):
+        self.tdl = tdl
+        pass
+
+    # build the tdl into an image
+    def build(self):
+        # Ensure the image directory exists
+        try:
+            os.makedirs(IMG_DIR)
+        except OSError as ex:
+            if ex.errno == errno.EEXIST and os.path.isdir(IMG_DIR):
+                pass
+            else:
+                raise ex
+
+        # !NOTE! image_type was introduced in oz 0.11.0,
+        #        make sure to set image_type in test/data/oz.cfg
+        image = os.path.splitext(self.tdl)[0]
+        image = os.path.split(image)[-1]
+        image = os.path.join(IMG_DIR, image + ".qcow2")
+        if os.path.exists(image):
+            print "image %s exists, skipping creation" % image
+
+        else:
+            print "building image %s" % image
+            print run_cmd([OZ_BIN, "-t", "3600", "-s", image, '-d3', '-c', OZ_CFG, os.path.join(TDL_DIR, self.tdl)])
+
+        return TestImage('rhev', image)
+ 
 
 class TestImage:
     def close(self):
@@ -177,6 +217,11 @@ class TestHelper:
           print "oz not found, skipping image generation"
           return
 
-      # build tdls
-      for tdl in os.listdir(TDL_DIR):
-          cls.images.append(build_tdl(tdl))
+      for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tdl')):
+          tdl = TestTDL(tdlf)
+          cls.images.append(tdl.build())
+
+      for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tpl')):
+          tpl = TestTDLTemplate(tdlf)
+          tdl = tpl.render()
+          cls.images.append(tdl.build())
