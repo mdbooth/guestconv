@@ -21,7 +21,7 @@
 
 from guestconv.exception import GuestConvException
 
-class BootloaderNotFound(GuestConvException): pass
+class BootLoaderNotFound(GuestConvException): pass
 
 # libguestfs currently returns all exceptions as RuntimeError. We hope this
 # might be improved in the future, but in the meantime we capture the intention
