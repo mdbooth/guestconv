@@ -44,7 +44,6 @@ QEMU_IMG_BIN  = '/usr/bin/qemu-img'
 SSH_BIN       = '/usr/bin/ssh'
 LIBVIRT_LEASES_FILE = '/var/lib/libvirt/dnsmasq/default.leases'
 
-OZ_CFG  = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'oz.cfg')
 TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'tdls')
 
 jinja = jinja2.Environment(loader=jinja2.FileSystemLoader('test/data/tdls'))
@@ -108,17 +107,16 @@ class TestTDL:
             else:
                 raise ex
 
-        # !NOTE! image_type was introduced in oz 0.11.0,
-        #        make sure to set image_type in test/data/oz.cfg
         image = os.path.splitext(self.tdl)[0]
         image = os.path.split(image)[-1]
-        image = os.path.join(IMG_DIR, image + ".qcow2")
+        image = os.path.join(IMG_DIR, image + ".img")
         if os.path.exists(image):
             print "image %s exists, skipping creation" % image
 
         else:
             print "building image %s" % image
-            print run_cmd([OZ_BIN, "-t", "3600", "-s", image, '-d3', '-c', OZ_CFG, os.path.join(TDL_DIR, self.tdl)])
+            run_cmd([OZ_BIN, '-t', '3600', '-s', image, '-d3',
+                             os.path.join(TDL_DIR, self.tdl)])
 
         return TestImage('rhev', image)
  
@@ -138,7 +136,7 @@ class TestImage:
 
     def launch(self):
         # TODO destroy domain if already running (or skip) ?
-        name = os.path.split(self.drive_name)[-1].replace(".qcow2", "");
+        name = os.path.split(self.drive_name)[-1].replace(".img", "");
         stdout = run_cmd([VIRT_INST_BIN, '--connect', 'qemu:///system',
                                          '--name', name, '--ram', '1024',
                                          '--vcpus', '1', '--disk', self.drive_name,
