@@ -5,7 +5,7 @@
     <version>17</version>
     <arch>x86_64</arch>
     <install type='url'>
-      <url>http://download.fedoraproject.org/pub/fedora/linux/releases/17/Fedora/x86_64/os/</url>
+      <url>{{fedora_mirror}}/releases/17/Fedora/x86_64/os/</url>
     </install>
   </os>
   <description>Fedora 17</description>

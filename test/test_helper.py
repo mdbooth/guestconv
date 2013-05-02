@@ -69,13 +69,10 @@ def logger(level, msg):
     pass
 
 class TestTDLTemplate:
-    default_args = { 'name' : 'template_tdl',
-                     'description' : 'template tdl',
-                     'os' : { 'name' : 'Fedora',
-                              'version' : '17',
-                              'arch'    : 'x86_64',
-                              'install_url' : 'http://download.fedoraproject.org/pub/fedora/linux/releases/17/Fedora/x86_64/os/'
-                    }}
+    default_args = {
+        'fedora_mirror': 'http://download.fedoraproject.org/pub/fedora/linux',
+        'ubuntu_mirror': 'http://mirrors.us.kernel.org/ubuntu-releases'
+    }
 
     def __init__(self, template):
         self.template = os.path.basename(template)
