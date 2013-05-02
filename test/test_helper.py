@@ -85,9 +85,9 @@ class TestTDLTemplate:
         jtpl = jinja.get_template(self.template)
         render_args = dict(TestTDLTemplate.default_args.items() + kwargs.items())
         tdl = jtpl.render(**render_args)
-        tdlf = open(self.tdl, 'w')
-        tdlf.write(tdl)
-        tdlf.close()
+        with open(self.tdl, 'w') as tdlf:
+            tdlf.write(tdl)
+
         # TODO write to template file
         return TestTDL(self.tdl)
 
