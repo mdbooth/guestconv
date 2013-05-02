@@ -75,7 +75,7 @@ class TestTDLTemplate:
                     }}
 
     def __init__(self, template):
-        self.template = template.replace(TDL_DIR, "")
+        self.template = os.path.basename(template)
         self.tdl = os.path.join(IMG_DIR, self.template.replace("tpl", ""))
         pass
 
