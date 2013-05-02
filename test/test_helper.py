@@ -118,7 +118,7 @@ class TestTDL:
             run_cmd([OZ_BIN, '-t', '3600', '-s', image, '-d3',
                              os.path.join(TDL_DIR, self.tdl)])
 
-        return TestImage('rhev', image)
+        return image
  
 
 class TestImage:
@@ -201,18 +201,15 @@ class TestSnapshot:
         run_cmd([QEMU_IMG_BIN, 'snapshot', '-d', self.name, self.image.drive_name])
 
 class TestHelper:
-  images    = []
+  images = []
 
   @classmethod
   def has_image(cls, image):
-      return cls.image_for(image) != None
+      return image in cls.images
 
   @classmethod
   def image_for(cls, image):
-      for img in cls.images:
-          if img.drive == image:
-              return img
-      return None
+      return TestImage('rhev', image)
 
   @classmethod
   def init(cls):
