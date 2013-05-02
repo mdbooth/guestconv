@@ -16,7 +16,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-import os
+import os.path
 import unittest
 
 from test_helper import TestHelper
@@ -26,7 +26,7 @@ class GrubTest(unittest.TestCase):
     def setUp(self):
         self.img = TestHelper.image_for(F17IMG)
 
-    @unittest.skipUnless(TestHelper.has_image(F17IMG), "image does not exist")
+    @unittest.skipUnless(os.path.exists(F17IMG), "image does not exist")
     def testListKernels(self):
         self.img.inspect()
         kernels = self.img.list_kernels()

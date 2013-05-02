@@ -17,8 +17,11 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-import errno
 import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
+
+import errno
 import glob
 import os.path
 import re
@@ -194,28 +197,20 @@ class TestInstance:
 
 
 class TestHelper:
-    images = []
-  
-    @classmethod
-    def has_image(cls, image):
-        return image in cls.images
-  
     @classmethod
     def image_for(cls, image):
         name = image.replace('.img', '')
         return TestImage(name, image)
-  
-    @classmethod
-    def init(cls):
-        if not os.path.isfile(OZ_BIN) or not os.access(OZ_BIN, os.X_OK):
-            print "oz not found, skipping image generation"
-            return
-  
-        for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tdl')):
-            tdl = TestTDL(tdlf)
-            cls.images.append(tdl.build())
-  
-        for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tpl')):
-            tpl = TestTDLTemplate(tdlf)
-            tdl = tpl.render()
-            cls.images.append(tdl.build())
+
+if __name__ == '__main__':
+    if not os.path.isfile(OZ_BIN) or not os.access(OZ_BIN, os.X_OK):
+        print "oz not found, skipping image generation"
+        os.exit(1)
+
+    for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tdl')):
+        TestTDL(tdlf).build()
+
+    for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tpl')):
+        TestTDLTemplate(tdlf).render().build()
+
+    os.exit(0)

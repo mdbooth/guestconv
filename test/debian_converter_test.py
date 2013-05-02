@@ -16,7 +16,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-import os
+import os.path
 import unittest
 import guestconv
 
@@ -27,6 +27,6 @@ class GrubTest(unittest.TestCase):
     def setUp(self):
         self.img = TestHelper.image_for(UBUNTU1210_IMG)
 
-    @unittest.skipUnless(TestHelper.has_image(UBUNTU1210_IMG), "image does not exist")
+    @unittest.skipUnless(os.path.exists(UBUNTU1210_IMG), "image does not exist")
     def testNoBootloader(self):
         self.assertRaises(guestconv.exception.ConversionError, self.img.inspect)

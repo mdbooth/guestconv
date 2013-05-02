@@ -23,9 +23,6 @@ import os.path
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 
-import test_helper
-test_helper.TestHelper.init()
-
 import converter_test
 import redhat_converter_test
 import debian_converter_test
