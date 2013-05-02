@@ -1,5 +1,4 @@
-# test/debian_coverter_test.py unit test suite for
-# guestconv debian converter operations
+# test/images.py
 #
 # (C) Copyright 2013 Red Hat Inc.
 #
@@ -16,21 +15,9 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-import os
-import unittest
-import guestconv
+import os.path
 
-from test_helper import TestHelper
-from images import *
-
-class GrubTest(unittest.TestCase):
-    def setUp(self):
-        self.img = TestHelper.image_for(UBUNTU1210_IMG)
-        self.img.open()
-
-    def tearDown(self):
-        self.img.close()
-
-    @unittest.skipUnless(TestHelper.has_image(UBUNTU1210_IMG), "image does not exist")
-    def testNoBootloader(self):
-        self.assertRaises(guestconv.exception.ConversionError, self.img.inspect)
+IMG_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                       'data', 'images')
+F17IMG = os.path.join(IMG_DIR, 'f17x86_64.img')
+UBUNTU1210_IMG = os.path.join(IMG_DIR, 'ubuntu12.10x86_64.img')

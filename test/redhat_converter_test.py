@@ -20,9 +20,7 @@ import os
 import unittest
 
 from test_helper import TestHelper
-
-IMG_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'images')
-F17IMG  = os.path.join(IMG_DIR, 'f17x86_64.img')
+from images import *
 
 class GrubTest(unittest.TestCase):
     def setUp(self):

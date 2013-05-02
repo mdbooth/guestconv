@@ -26,12 +26,13 @@ import tempfile
 import subprocess
 import jinja2
 
-import guestconv
-
 import xml.etree.ElementTree as et
+
+import guestconv
 from guestconv.converter import Converter
 from guestconv.converter import RootMounted
 import guestconv.converters.redhat
+from images import *
 
 topdir = os.path.join(os.path.dirname(__file__), os.pardir)
 
@@ -45,7 +46,6 @@ LIBVIRT_LEASES_FILE = '/var/lib/libvirt/dnsmasq/default.leases'
 
 OZ_CFG  = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'oz.cfg')
 TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'tdls')
-IMG_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'images')
 
 jinja = jinja2.Environment(loader=jinja2.FileSystemLoader('test/data/tdls'))
 
