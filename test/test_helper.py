@@ -205,7 +205,7 @@ class TestHelper:
 if __name__ == '__main__':
     if not os.path.isfile(OZ_BIN) or not os.access(OZ_BIN, os.X_OK):
         print "oz not found, skipping image generation"
-        os.exit(1)
+        sys.exit(1)
 
     for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tdl')):
         TestTDL(tdlf).build()
@@ -213,4 +213,4 @@ if __name__ == '__main__':
     for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tpl')):
         TestTDLTemplate(tdlf).render().build()
 
-    os.exit(0)
+    sys.exit(0)
