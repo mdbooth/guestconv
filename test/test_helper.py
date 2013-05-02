@@ -23,11 +23,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 
 import errno
 import glob
+import itertools
+import jinja2
 import os.path
 import re
-import tempfile
 import subprocess
-import jinja2
+import tempfile
 
 import xml.etree.ElementTree as et
 
@@ -69,7 +70,7 @@ def logger(level, msg):
     pass
 
 class TestTDLTemplate:
-    default_args = {
+    defaults = {
         'fedora_mirror': 'http://download.fedoraproject.org/pub/fedora/linux',
         'ubuntu_mirror': 'http://mirrors.us.kernel.org/ubuntu-releases'
     }
@@ -80,10 +81,14 @@ class TestTDLTemplate:
         pass
 
     # render a tdl from this template
-    def render(self, **kwargs):
+    def render(self, params={}):
         print "rendering template %s to tdl %s" % (self.template, self.tdl)
         jtpl = jinja.get_template(self.template)
-        render_args = dict(TestTDLTemplate.default_args.items() + kwargs.items())
+
+        # Merge passed-in params with defaults, with passed-in taking precedence
+        render_args = dict(itertools.chain(TestTDLTemplate.defaults.items(),
+                                           params.items()))
+
         tdl = jtpl.render(**render_args)
         with open(self.tdl, 'w') as tdlf:
             tdlf.write(tdl)
