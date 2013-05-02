@@ -50,13 +50,17 @@ IMG_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'ima
 jinja = jinja2.Environment(loader=jinja2.FileSystemLoader('test/data/tdls'))
 
 def run_cmd(cmd):
-    stdoutf = tempfile.TemporaryFile()
-    popen = subprocess.Popen(cmd, stdout=stdoutf, stderr=stdoutf)
-    popen.wait()
-    stdoutf.seek(0)
-    stdout = stdoutf.read()
-    stdoutf.close()
-    return stdout
+    out = tempfile.TemporaryFile()
+    popen = subprocess.Popen(cmd, stdout=out, stderr=subprocess.STDOUT)
+    status = popen.wait()
+    if status != 0:
+        out.seek(0)
+        raise RuntimeError('Command returned status {status}: {cmd}: {output}'.
+                           format(status=status, cmd=' '.join(cmd),
+                                  output=out.read().strip()))
+
+    out.seek(0)
+    return out.read().strip()
 
 def logger(level, msg):
     print msg
