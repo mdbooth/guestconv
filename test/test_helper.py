@@ -63,7 +63,8 @@ def run_cmd(cmd):
     return out.read().strip()
 
 def logger(level, msg):
-    print msg
+    # In general, we're not interested in log output during test runs
+    pass
 
 class TestTDLTemplate:
     default_args = { 'name' : 'template_tdl',
