@@ -122,25 +122,18 @@ class TestTDL:
  
 
 class TestImage:
-    def close(self):
-        if self.drive:
-            self.drive.close()
-
-    def open(self):
-        if self.drive_name:
-            self.converter.add_drive(self.drive_name)
-
-    def snapshot(self, name):
-        stdout = run_cmd([QEMU_IMG_BIN, 'snapshot', '-c', name, self.drive_name])
-        return TestSnapshot('rhev', name, self)
-
     def launch(self):
-        # TODO destroy domain if already running (or skip) ?
-        name = os.path.split(self.drive_name)[-1].replace(".img", "");
-        stdout = run_cmd([VIRT_INST_BIN, '--connect', 'qemu:///system',
-                                         '--name', name, '--ram', '1024',
-                                         '--vcpus', '1', '--disk', self.drive_name,
-                                         '--accelerate', '--boot', 'hd', '--noautoconsole'])
+        install = [VIRT_INST_BIN, '--connect', 'qemu:///system',
+                                  '--name', self.name, '--ram', '1024',
+                                  '--vcpus', '1', '--accelerate',
+                                  '--boot', 'hd', '--import']
+
+        for ovl in self._ovls:
+            install.append('--disk')
+            install.append(ovl.name)
+
+        run_cmd(install)
+
         return TestInstance(name, self)
 
     def inspect(self):
@@ -152,17 +145,24 @@ class TestImage:
                 self.converter._h, '/dev/VolGroup00/LogVol00', logger)
             return grub.list_kernels()
 
-    def __init__(self, name, image=None):
+    def __init__(self, name, *images):
         self.name = name
         self.converter = Converter('rhev', ['%s/conf/guestconv.db' % topdir],
                                    logger)
-        if image == None:
-            self.drive = tempfile.NamedTemporaryFile()
-            self.drive_name = self.drive.name
 
-        else:
-            self.drive = None
-            self.drive_name = image
+        # We store a reference to the overlays to ensure they aren't garbage
+        # collected before the TestImage
+        self._ovls = []
+
+        # Create a qcow2 overlay for each image and add it to the converter
+        for img in images:
+            ovl = tempfile.NamedTemporaryFile(prefix='guestconv-test.')
+            run_cmd([QEMU_IMG_BIN, 'create', '-f', 'qcow2',
+                                   '-o', 'backing_file='+img, ovl.name])
+            self._ovls.append(ovl)
+
+            self.converter.add_drive(ovl.name)
+
 
 class TestInstance:
     def __init__(self, name, image):
@@ -192,14 +192,6 @@ class TestInstance:
                   "-o", "PasswordAuthentication=no",
                   ("guest@%s" % self.ip), cmd])
 
-class TestSnapshot:
-    def __init__(self, name, image):
-        self.name  = name
-        self.image = image
-
-    def __del__(self):
-        # delete snapshot
-        run_cmd([QEMU_IMG_BIN, 'snapshot', '-d', self.name, self.image.drive_name])
 
 class TestHelper:
   images = []

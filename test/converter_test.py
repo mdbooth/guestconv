@@ -27,10 +27,6 @@ from images import *
 class ConverterTest(unittest.TestCase):
     def setUp(self):
         self.img = TestHelper.image_for(F17IMG)
-        self.img.open()
-
-    def tearDown(self):
-        self.img.close()
 
     def testInspect(self):
         xml = self.img.inspect()

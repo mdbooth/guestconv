@@ -26,10 +26,6 @@ from images import *
 class GrubTest(unittest.TestCase):
     def setUp(self):
         self.img = TestHelper.image_for(UBUNTU1210_IMG)
-        self.img.open()
-
-    def tearDown(self):
-        self.img.close()
 
     @unittest.skipUnless(TestHelper.has_image(UBUNTU1210_IMG), "image does not exist")
     def testNoBootloader(self):

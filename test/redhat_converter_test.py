@@ -25,10 +25,6 @@ from images import *
 class GrubTest(unittest.TestCase):
     def setUp(self):
         self.img = TestHelper.image_for(F17IMG)
-        self.img.open()
-
-    def tearDown(self):
-        self.img.close()
 
     @unittest.skipUnless(TestHelper.has_image(F17IMG), "image does not exist")
     def testListKernels(self):
