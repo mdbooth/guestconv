@@ -79,7 +79,7 @@ class TestTDLTemplate:
 
     def __init__(self, template):
         self.template = os.path.basename(template)
-        self.tdl = os.path.join(IMG_DIR, self.template.replace("tpl", ""))
+        self.tdl = os.path.join(IMG_DIR, self.template.replace(".tpl", ""))
         pass
 
     # render a tdl from this template
