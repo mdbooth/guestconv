@@ -21,11 +21,12 @@ import unittest
 import tempfile
 from xml.dom import minidom
 
-from test_helper import TestImage
+from test_helper import TestHelper
+from images import *
 
 class ConverterTest(unittest.TestCase):
     def setUp(self):
-        self.img = TestImage('rhev')
+        self.img = TestHelper.image_for(F17IMG)
         self.img.open()
 
     def tearDown(self):

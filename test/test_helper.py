@@ -152,8 +152,9 @@ class TestImage:
                 self.converter._h, '/dev/VolGroup00/LogVol00', logger)
             return grub.list_kernels()
 
-    def __init__(self, target, image=None):
-        self.converter = Converter(target, ['%s/conf/guestconv.db' % topdir],
+    def __init__(self, name, image=None):
+        self.name = name
+        self.converter = Converter('rhev', ['%s/conf/guestconv.db' % topdir],
                                    logger)
         if image == None:
             self.drive = tempfile.NamedTemporaryFile()
@@ -209,7 +210,8 @@ class TestHelper:
 
   @classmethod
   def image_for(cls, image):
-      return TestImage('rhev', image)
+      name = image.replace('.img', '')
+      return TestImage(name, image)
 
   @classmethod
   def init(cls):
