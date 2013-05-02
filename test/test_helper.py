@@ -169,7 +169,8 @@ class TestInstance:
         self.image = image
 
         # retrieve instance mac
-        self.xml = run_cmd([VIRSH_BIN, 'dumpxml', name])
+        self.xml = run_cmd([VIRSH_BIN, '-c', 'qemu:///system',
+                                       'dumpxml', name])
         xmldoc = et.fromstring(self.xml)
         self.mac = xmldoc.find('./devices/interface/mac')
         self.mac = self.mac.get('address')
