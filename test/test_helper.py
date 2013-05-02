@@ -176,13 +176,12 @@ class TestInstance:
         self.mac = self.mac.get('address')
 
         # retrieve instance ip
-        leases = open(LIBVIRT_LEASES_FILE, "r")
-        for line in leases:
-          m = re.match("[^\s]*\s*%s\s*([^\s]*).*" % self.mac, line)
-          if m:
-            self.ip = m.group(1)
-            break
-        leases.close()
+        with open(LIBVIRT_LEASES_FILE, 'r') as leases:
+            for line in leases:
+              m = re.match("[^\s]*\s*%s\s*([^\s]*).*" % self.mac, line)
+              if m:
+                self.ip = m.group(1)
+                break
 
     def ssh_cmd(self, cmd):
         run_cmd([SSH_BIN, '-i', 'test/data/key',
