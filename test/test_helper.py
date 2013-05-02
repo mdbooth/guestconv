@@ -194,28 +194,28 @@ class TestInstance:
 
 
 class TestHelper:
-  images = []
-
-  @classmethod
-  def has_image(cls, image):
-      return image in cls.images
-
-  @classmethod
-  def image_for(cls, image):
-      name = image.replace('.img', '')
-      return TestImage(name, image)
-
-  @classmethod
-  def init(cls):
-      if not os.path.isfile(OZ_BIN) or not os.access(OZ_BIN, os.X_OK):
-          print "oz not found, skipping image generation"
-          return
-
-      for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tdl')):
-          tdl = TestTDL(tdlf)
-          cls.images.append(tdl.build())
-
-      for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tpl')):
-          tpl = TestTDLTemplate(tdlf)
-          tdl = tpl.render()
-          cls.images.append(tdl.build())
+    images = []
+  
+    @classmethod
+    def has_image(cls, image):
+        return image in cls.images
+  
+    @classmethod
+    def image_for(cls, image):
+        name = image.replace('.img', '')
+        return TestImage(name, image)
+  
+    @classmethod
+    def init(cls):
+        if not os.path.isfile(OZ_BIN) or not os.access(OZ_BIN, os.X_OK):
+            print "oz not found, skipping image generation"
+            return
+  
+        for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tdl')):
+            tdl = TestTDL(tdlf)
+            cls.images.append(tdl.build())
+  
+        for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tpl')):
+            tpl = TestTDLTemplate(tdlf)
+            tdl = tpl.render()
+            cls.images.append(tdl.build())
