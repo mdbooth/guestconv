@@ -17,10 +17,10 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+import env
+
 import os
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
-
 import errno
 import glob
 import itertools
@@ -37,8 +37,6 @@ from guestconv.converter import Converter
 from guestconv.converter import RootMounted
 import guestconv.converters.redhat
 from images import *
-
-topdir = os.path.join(os.path.dirname(__file__), os.pardir)
 
 # requires root privs:
 OZ_BIN        = '/usr/bin/oz-install'
@@ -152,7 +150,8 @@ class TestImage:
 
     def __init__(self, name, *images):
         self.name = name
-        self.converter = Converter('rhev', ['%s/conf/guestconv.db' % topdir],
+        self.converter = Converter('rhev',
+                                   ['%s/conf/guestconv.db' % env.topdir],
                                    logger)
 
         # We store a reference to the overlays to ensure they aren't garbage
