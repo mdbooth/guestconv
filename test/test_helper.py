@@ -46,7 +46,8 @@ QEMU_IMG_BIN  = '/usr/bin/qemu-img'
 SSH_BIN       = '/usr/bin/ssh'
 LIBVIRT_LEASES_FILE = '/var/lib/libvirt/dnsmasq/default.leases'
 
-TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'tdls')
+TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                       'data', 'tdls')
 
 jinja = jinja2.Environment(loader=jinja2.FileSystemLoader('test/data/tdls'))
 
