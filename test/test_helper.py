@@ -206,20 +206,50 @@ class TestHelper:
         name = image.replace('.img', '')
         return TestImage(name, image)
 
+def build_tdl(path):
+    TestTDL(os.path.join(TDL_DIR, path+'.tdl')).build()
+
+def build_tpl(path, params):
+    tpl_path = os.path.join(TDL_DIR, path+'.tdl.tpl')
+    tpl = TestTDLTemplate(tpl_path)
+    tpl.render(params).build()
+
 if __name__ == '__main__':
-    params = {}
-    for arg in sys.argv[1:]:
-        key, value = arg.split('=')
-        params[key] = value
+    tdls = map(lambda x: os.path.basename(x).replace('.tdl', ''),
+               glob.glob(os.path.join(TDL_DIR, '*.tdl')))
+    tpls = map(lambda x: os.path.basename(x).replace('.tdl.tpl', ''),
+               glob.glob(os.path.join(TDL_DIR, '*.tdl.tpl')))
 
-    if not os.path.isfile(OZ_BIN) or not os.access(OZ_BIN, os.X_OK):
-        print "oz not found, skipping image generation"
-        sys.exit(1)
+    cmd = sys.argv[1]
 
-    for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tdl')):
-        TestTDL(tdlf).build()
+    if cmd == 'list':
+        for i in itertools.chain(tdls, tpls):
+            print i
 
-    for tdlf in glob.glob(os.path.join(TDL_DIR, '*.tpl')):
-        TestTDLTemplate(tdlf).render(params).build()
+    elif cmd == 'build':
+        tgt = sys.argv[2]
+        params = {}
+        for arg in sys.argv[3:]:
+            key, value = arg.split('=')
+            params[key] = value
+
+        if tgt == 'all':
+            for i in tdls:
+                build_tdl(i)
+            for i in tpls:
+                build_tpl(i, params)
+
+        elif tgt in tdls:
+            build_tdl(tgt)
+
+        elif tgt in tpls:
+            build_tpl(tgt, params)
+
+        else:
+            print "Target {} doesn't exist".format(tgt)
+            sys.exit(1)
+
+    else:
+        print "Invalid command: {}".format(cmd)
 
     sys.exit(0)
