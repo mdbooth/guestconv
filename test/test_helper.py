@@ -49,7 +49,9 @@ LIBVIRT_LEASES_FILE = '/var/lib/libvirt/dnsmasq/default.leases'
 TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                        'data', 'tdls')
 
-jinja = jinja2.Environment(loader=jinja2.FileSystemLoader('test/data/tdls'))
+jinja = jinja2.Environment(
+    loader=jinja2.FileSystemLoader('{}/test/data/tdls'.format(env.topdir))
+)
 
 def run_cmd(cmd):
     out = tempfile.TemporaryFile()
