@@ -73,7 +73,8 @@ def logger(level, msg):
 class TestTDLTemplate:
     defaults = {
         'fedora_mirror': 'http://download.fedoraproject.org/pub/fedora/linux',
-        'ubuntu_mirror': 'http://mirrors.us.kernel.org/ubuntu-releases'
+        'ubuntu_mirror': 'http://mirrors.us.kernel.org/ubuntu-releases',
+        'iso_repository': 'file://'
     }
 
     def __init__(self, template):

@@ -19,5 +19,8 @@ import os.path
 
 IMG_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                        'data', 'images')
+
 F17IMG = os.path.join(IMG_DIR, 'f17x86_64.img')
 UBUNTU1210_IMG = os.path.join(IMG_DIR, 'ubuntu12.10x86_64.img')
+
+RHEL46_32_IMG = os.path.join(IMG_DIR, 'rhel-4.6-i386.img')
