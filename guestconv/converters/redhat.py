@@ -17,8 +17,13 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+import errno
 import functools
-from itertools import izip_longest
+import os.path
+import rpm
+
+from copy import copy
+from itertools import chain, izip_longest
 
 from guestconv.exception import *
 from guestconv.converters.grub import *
@@ -166,6 +171,316 @@ class Package(object):
 
     def __lt__(self, other):
         return self._cmp(other) < 0
+
+
+class GuestNetworking(object):
+    """Execute a block of code with guest networking configured"""
+
+    def __init__(self, h):
+        self._h = h
+        self._old_resolv_conf = None
+
+    def __enter__(self):
+        h = self._h
+        if h.exists(u'/etc/resolv.conf'):
+            self._old_resolv_conf = h.mktemp(u'/etc/resolv.conf.XXXXXX')
+            h.mv(u'/etc/resolv.conf', self._old_resolv_conf)
+            h.write_file(u'/etc/resolv.conf', u'nameserver 169.254.2.3', 0)
+
+    def __exit__(self, type, value, tb):
+        if self._old_resolv_conf is not None:
+            self._h.mv(self._old_resolv_conf, u'/etc/resolv.conf')
+
+        return False
+
+
+class RPMInstaller(object):
+    def __init__(self, h, root, logger):
+        self._h = h
+        self._root = root
+        self._logger = logger
+
+    def get_installed(self, name, arch=None):
+        if arch is None:
+            search = name
+        else:
+            search = u'{}.{}'.format(name, arch)
+
+        rpmcmd = [u'rpm', u'-q', u'--qf',
+                  ur'%{EPOCH} %{VERSION} %{RELEASE} %{ARCH}\n', search]
+
+        try:
+            output = self._h.command_lines(rpmcmd)
+        except GuestFSException:
+            # RPM command returned non-zero. This might be because there was
+            # actually an error, or might just be because the package isn't
+            # installed.
+            # Unfortunately, rpm sent its error to stdout instead of stderr,
+            # and command_lines only gives us stderr in $@. To get round this
+            # we execute the command again, sending all output to stdout and
+            # ignoring failure. If the output contains 'not installed', we'll
+            # assume it's not a real error.
+
+            cmd = (u'LANG=C ' +
+                   u' '.join(map(lambda x: u"'"+x+u"'", rpmcmd)) +
+                   u' 2>&1 ||:')
+            error = self._h.sh(cmd)
+
+            if re.search(u'not installed', error):
+                return
+
+            raise ConversionError(
+                _(u'Error running {command} in guest: {msg}').
+                format(command=cmd, msg=error))
+
+        for line in output:
+            m = re.match(u'^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$', line)
+            if m is None:
+                raise ConversionError(
+                    _(u'Unexpected output from rpm: {output}').
+                    format(output='\n'.join(output)))
+
+            epoch = m.group(1)
+            version = m.group(2)
+            release = m.group(3)
+            arch = m.group(4)
+
+            if epoch == '(none)':
+                epoch = None
+
+            yield Package(name, epoch, version, release, arch)
+
+
+class Up2dateInstaller(RPMInstaller):
+    @classmethod
+    def supports(klass, h, root):
+        if (h.exists(u'/usr/bin/up2date') and
+                h.exists(u'/etc/sysconfig/rhn/systemid')):
+            return True
+
+    def __init__(self, h, root, logger):
+        super(Up2dateInstaller, self).__init__(h, root, logger)
+
+
+class YumInstaller(RPMInstaller):
+    INSTALL = 0
+    UPGRADE = 1
+    LIST = 2
+
+    @classmethod
+    def supports(klass, h, root):
+        if h.exists(u'/usr/bin/yum'):
+            return True
+
+    def __init__(self, h, root, logger):
+        super(YumInstaller, self).__init__(h, root, logger)
+
+    def _yum_cmd(self, package, mode):
+        cmdline = [u'LANG=C /usr/bin/yum -y']
+        if mode == YumInstaller.INSTALL:
+            cmdline.append(u'install')
+        elif mode == YumInstaller.UPGRADE:
+            cmdline.append(u'upgrade')
+        else:
+            cmdline.append(u'list')
+
+        cmdline.append(str(package))
+
+        try:
+            with GuestNetworking(self._h):
+                output = self._h.sh_lines(" ".join(cmdline))
+        except GuestFSException as ex:
+            self._logger.debug(u'Yum command failed with: {error}'.
+                               format(error=ex.message))
+            return False
+
+        for line in output:
+            if (mode == YumInstaller.INSTALL and
+                re.search(u'(?:^No package|^Nothing to do)', line)):
+                return False
+            if mode == YumInstaller.UPGRADE and re.search(u'^No Packages'):
+                return False
+
+        return True
+
+    def check_available(self, kernel, install, upgrade):
+        if kernel is not None:
+            self._logger.info(u'Checking package {pkg} is available via YUM'.
+                              format(pkg=str(kernel)))
+            if not self._yum_cmd(kernel, YumInstaller.LIST):
+                return False
+
+        for i in chain(install, upgrade):
+            self._logger.info(u'Checking package {pkg} is available via YUM'.
+                              format(pkg=str(i)))
+            if not self._yum_cmd(i, YumInstaller.LIST):
+                return False
+
+        return True
+
+
+class LocalInstaller(RPMInstaller):
+    def __init__(self, h, root, db, logger):
+        super(LocalInstaller, self).__init__(h, root, logger)
+        self._db = db
+
+    def _read_local_rpm(self, path):
+        # Read the rpm header from the local file
+        hdr = None
+        try:
+            with open(path, 'rb') as rpm_fd:
+                ts = rpm.TransactionSet()
+                # Don't check package signatures before installation, which will
+                # fail unless we have the signing key for the target OS
+                # installed locally. We implicitly trust these packages.
+                ts.setVSFlags(rpm._RPMVSF_NOSIGNATURES)
+                hdr = ts.hdrFromFdno(rpm_fd)
+
+                return Package(hdr[u'NAME'], hdr[u'EPOCH'], hdr[u'VERSION'],
+                               hdr[u'RELEASE'], hdr[u'ARCH'])
+        except IOError as e:
+            # Display an additional warning to the user for any error other
+            # than file missing
+            if e.errno != errno.ENOENT:
+                self._logger.warn(_(u'Unable to open local file '
+                                    u'{path}: {error}').
+                                    format(path=path, error=e.message))
+        except rpm.error as e:
+            self._logger.warn(_(u'Unable to read rpm package header from '
+                                u'{path}').format(path=path))
+
+        return None
+
+    def _report_missing_app(self, name, arch, missing):
+        h = self._h
+        root = self._root
+
+        os = h.inspect_get_type(root)
+        distro = h.inspect_get_distro(root)
+        version = u'{}.{}'.format(h.inspect_get_major_version(root),
+                                  h.inspect_get_minor_version(root))
+
+        self._logger.warn(_(u"Didn't find {name} app for os={os} "
+                            u'distro={distro} version={version} '
+                            u'arch={arch}').
+                            format(name=name, os=os, distro=distro,
+                                   version=version, arch=arch))
+
+        missing.append(u'app:'+name)
+
+    def _resolve_required_deps(self, names, required, missing, arch=None,
+                               is_subarch=False, visited=[]):
+        h = self._h
+        root = self._root
+
+        if arch is None:
+            arch = h.inspect_get_arch(self._root)
+
+        for name in names:
+            # Don't get stuck in a loop
+            canon_name = name+'.'+arch
+            if canon_name in visited:
+                continue
+            visited.append(canon_name)
+
+            # Lookup local path and dependencies from the db
+            path, deps = self._db.match_app(name, arch, h, root)
+            if path is None:
+                # Ignore failed matches for subarches
+                if is_subarch:
+                    continue
+
+                self._report_missing_app(name, arch, missing)
+                continue
+
+            # If we're checking a subarch, we don't actually want to install the
+            # package. However, we have to upgrade it if there's already an
+            # older version installed, otherwise we'll end up with a version
+            # mis-match between architectures, which normally leads to a
+            # conflict.
+            #
+            # If we aren't checking a subarch, we want to ensure that this
+            # package unless a newer version is already installed.
+            need = True
+
+            # Read NEVRA from the local rpm
+            pkg = self._read_local_rpm(path)
+
+            # Check if we need to install the package
+            if pkg is None:
+                # We don't know if we need the package or not if it's
+                # missing. For the purposes of reporting to the user we
+                # treat it as if we did.
+                missing.append(path)
+            else:
+                found_older = False
+                for installed in self.get_installed(pkg.name, pkg.arch):
+                    # No need to do anything if there's already a newer version
+                    # installed
+                    if pkg <= installed:
+                        need = False
+                        break
+
+                    # For subarch, we're looking for something which needs to be
+                    # upgraded
+                    if is_subarch and pkg > installed:
+                        found_older = True
+                        break
+                if is_subarch and not found_older:
+                    need = False
+
+            if need:
+                required.append(path)
+                self._resolve_required_deps(deps, required, missing, arch,
+                                            False, visited)
+
+                # For x86_64, also check if there is any i386 or i686 version
+                # installed. If there is, check if it needs to be upgraded
+                if arch == 'x86_64':
+                    for subarch in [u'i386', u'i686']:
+                        self._resolve_required_deps([name], required, missing,
+                                                    subarch, True, visited)
+
+    def check_available(self, kernel, install, upgrade):
+        missing = []
+        if kernel is not None:
+            kernel_path, kernel_deps = self._db.match_app(
+                kernel.name, kernel.arch, self._h, self._root)
+            if kernel_path is None:
+                self._report_missing_app(kernel.name, kernel.arch, missing)
+                kernel_deps = []
+            elif not os.path.exists(kernel_path):
+                missing.append(kernel_path)
+        else:
+            kernel_path = None
+            kernel_deps = []
+
+        # Check if the kernel is available and required
+        if kernel_path is not None:
+            kernel_pkg = self._read_local_rpm(kernel_path)
+            if kernel_pkg is None:
+                missing.append(kernel_path)
+            else:
+                need = True
+                for installed in self.get_installed(kernel_pkg.name,
+                                                    kernel_pkg.arch):
+                    if kernel_pkg <= installed:
+                        need = False
+                        break
+                if not need:
+                    kernel_path = None
+
+        required = []
+        self._resolve_required_deps(chain(kernel_deps, install, upgrade),
+                                    required, missing)
+        if len(missing) > 0:
+            self._logger.warn(
+                _(u'The following files referenced in the configuration are '
+                  u'required, but missing: {list}').
+                format(list=u' '.join(missing)))
+            return False
+
+        return True
 
 
 class RedHat(BaseConverter):
