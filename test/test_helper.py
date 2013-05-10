@@ -19,15 +19,16 @@
 
 import env
 
-import os
-import sys
 import errno
 import glob
+import guestfs
 import itertools
 import jinja2
+import os
 import os.path
 import re
 import subprocess
+import sys
 import tempfile
 
 import xml.etree.ElementTree as et
@@ -143,6 +144,12 @@ class TestImage:
         run_cmd(install)
 
         return TestInstance(name, self)
+
+    def guestfs_handle(self):
+        h = guestfs.GuestFS(python_return_dict=True)
+        for ovl in self._ovls:
+            h.add_drive(ovl.name)
+        return h
 
     def inspect(self):
         return self.converter.inspect()
