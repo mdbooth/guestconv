@@ -28,5 +28,6 @@
 /dist
 /test/.coverage
 /test/data/images
+/test/data/systemid-rhel-5-x86_64
 /locale/*.mo
 /locale/install/

@@ -17,8 +17,8 @@
 
 import os.path
 
-IMG_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                       'data', 'images')
+DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
+IMG_DIR = os.path.join(DATA_DIR, 'images')
 
 F17IMG = os.path.join(IMG_DIR, 'fedora-17-x86_64.img')
 UBUNTU1210_IMG = os.path.join(IMG_DIR, 'ubuntu-12.10-x86_64.img')

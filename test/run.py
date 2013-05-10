@@ -35,5 +35,7 @@ suite.addTest(unittest.makeSuite(redhat_converter_test.GrubTest))
 suite.addTest(unittest.makeSuite(debian_converter_test.GrubTest))
 suite.addTest(unittest.makeSuite(db.DBLookupTestCase))
 suite.addTest(unittest.makeSuite(rpm_package.RpmPackageTest))
+suite.addTest(unittest.makeSuite(redhat_converter_test.RHEL52_64_LocalInstallTest))
+suite.addTest(unittest.makeSuite(redhat_converter_test.RHEL52_64_YumInstallTest))
 
 unittest.TextTestRunner(verbosity=2).run(suite)
