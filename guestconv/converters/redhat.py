@@ -127,8 +127,10 @@ class Package(object):
                             format(other=other.__class__.__name__))
 
         if self.name != other.name or self.arch != other.arch:
-            raise TypeError(u'Packages with different names or architectures '
-                            u'are not comparable')
+            raise TypeError(u'Cannot compare packages {a.name}.{a.arch} and '
+                            u'{b.name}.{b.arch}. Comparable packages must have '
+                            u'the same name and architecture.'.
+                            format(a=self, b=other))
 
         # Treat empty epoch as zero
         e1 = self.epoch
