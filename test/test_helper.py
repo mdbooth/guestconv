@@ -81,28 +81,35 @@ class TestTDLTemplate:
 
     def __init__(self, template):
         self.template = os.path.basename(template)
-        self.tdl = os.path.join(IMG_DIR, self.template.replace(".tpl", ""))
+        self.name = self.template.replace('.tdl.tpl', '')
         pass
 
     # render a tdl from this template
     def render(self, params={}):
-        print "rendering template %s to tdl %s" % (self.template, self.tdl)
+        print "rendering template {}".format(self.template)
         jtpl = jinja.get_template(self.template)
 
         # Merge passed-in params with defaults, with passed-in taking precedence
         render_args = dict(itertools.chain(TestTDLTemplate.defaults.items(),
                                            params.items()))
 
-        tdl = jtpl.render(**render_args)
-        with open(self.tdl, 'w') as tdlf:
-            tdlf.write(tdl)
+        # Create a temporary file containing the rendered tdl
+        # Note bufsize=0 required to ensure data is written before oz tries to
+        # read it
+        tdlf = tempfile.NamedTemporaryFile(prefix='guestconv-test.', bufsize=0)
+        tdlf.write(jtpl.render(**render_args))
 
-        # TODO write to template file
-        return TestTDL(self.tdl)
+        # Store a reference to the temporary file in the returned TestTDL to
+        # ensure they are garbage collected together
+        tdl = TestTDL(tdlf.name, self.name)
+        tdl._tempfile = tdlf
+
+        return tdl
 
 class TestTDL:
-    def __init__(self, tdl):
+    def __init__(self, tdl, name):
         self.tdl = tdl
+        self.name = name
         pass
 
     # build the tdl into an image
@@ -116,18 +123,16 @@ class TestTDL:
             else:
                 raise ex
 
-        image = os.path.splitext(self.tdl)[0]
-        image = os.path.split(image)[-1]
-        image = os.path.join(IMG_DIR, image + ".img")
-        if os.path.exists(image):
+        img = os.path.join(IMG_DIR, self.name+'.img')
+        if os.path.exists(img):
             print "image %s exists, skipping creation" % image
 
         else:
-            print "building image %s" % image
-            run_cmd([OZ_BIN, '-t', '3600', '-s', image, '-d3',
+            print "building image %s" % img
+            run_cmd([OZ_BIN, '-t', '3600', '-s', img, '-d3',
                              os.path.join(TDL_DIR, self.tdl)])
 
-        return image
+        return img
  
 
 class TestImage:
@@ -215,11 +220,12 @@ class TestHelper:
         name = image.replace('.img', '')
         return TestImage(name, image)
 
-def build_tdl(path):
-    TestTDL(os.path.join(TDL_DIR, path+'.tdl')).build()
+def build_tdl(name):
+    tdl = os.path.join(TDL_DIR, name+'.tdl')
+    TestTDL(tdl, name).build()
 
-def build_tpl(path, params):
-    tpl_path = os.path.join(TDL_DIR, path+'.tdl.tpl')
+def build_tpl(name, params):
+    tpl_path = os.path.join(TDL_DIR, name+'.tdl.tpl')
     tpl = TestTDLTemplate(tpl_path)
     tpl.render(params).build()
 
