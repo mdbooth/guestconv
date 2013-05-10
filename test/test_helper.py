@@ -33,9 +33,10 @@ import tempfile
 import xml.etree.ElementTree as et
 
 import guestconv
+import guestconv.converters.redhat as redhat
+
 from guestconv.converter import Converter
 from guestconv.converter import RootMounted
-import guestconv.converters.redhat
 from images import *
 
 # requires root privs:
@@ -148,7 +149,7 @@ class TestImage:
 
     def list_kernels(self):
         with RootMounted(self.converter._h, '/dev/VolGroup00/LogVol00'):
-            grub = guestconv.converters.redhat.Grub2BIOS(
+            grub = redhat.Grub2BIOS(
                 self.converter._h, '/dev/VolGroup00/LogVol00', logger)
             return grub.list_kernels()
 
