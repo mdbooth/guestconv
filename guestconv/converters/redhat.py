@@ -40,14 +40,18 @@ class Package(object):
     def __str__(self):
         elems = []
         if self.epoch is not None:
-            elems.append(epoch).append(u':')
-        elems.append(name)
+            elems.append(epoch)
+            elems.append(u':')
+        elems.append(self.name)
         if self.version is not None:
-            elems.append(u'-').append(self.version)
+            elems.append(u'-')
+            elems.append(self.version)
         if self.release is not None:
-            elems.append(u'-').append(self.release)
+            elems.append(u'-')
+            elems.append(self.release)
         if self.arch is not None:
-            elems.append(u'.').append(self.arch)
+            elems.append(u'.')
+            elems.append(self.arch)
 
         return ''.join(elems)
 
