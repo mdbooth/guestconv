@@ -69,8 +69,13 @@ def run_cmd(cmd):
     return out.read().strip()
 
 def logger(level, msg):
-    # In general, we're not interested in log output during test runs
-    pass
+    try:
+        log_level = int(os.environ['TEST_LOG_LEVEL'])
+    except KeyError, ValueError:
+        return
+
+    if level >= log_level:
+        print msg
 
 class TestTDLTemplate:
     defaults = {
