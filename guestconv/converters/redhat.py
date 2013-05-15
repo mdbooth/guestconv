@@ -428,12 +428,14 @@ class LocalInstaller(RPMInstaller):
                 self._resolve_required_deps(deps, required, missing, arch,
                                             False, visited)
 
-                # For x86_64, also check if there is any i386 or i686 version
-                # installed. If there is, check if it needs to be upgraded
-                if arch == 'x86_64':
-                    for subarch in [u'i386', u'i686']:
-                        self._resolve_required_deps([name], required, missing,
-                                                    subarch, True, visited)
+                # For x86_64 packages except kernel packages, also check if
+                # there is any i386 or i686 version installed. If there is,
+                # check if it needs to be upgraded
+                kernel_names = [u'kernel', u'kernel-smp', u'kernel-hugemem',
+                                u'kernel-largesmp']
+                if arch == u'x86_64' and name not in kernel_names:
+                    self._resolve_required_deps([name], required, missing,
+                                                u'i386', True, visited)
 
     def check_available(self, pkgs):
         missing = []

@@ -114,11 +114,11 @@ the modifications or additions to /etc/guestconv.conf instead. Configuration in
   <!-- RHEL 5
        All of these RPMS are from RHEL 5.3, which was the first version of RHEL
        5 to support VirtIO -->
-  <app os='linux' distro='rhel' major='5' arch='i686' name='kernel'>
+  <app os='linux' distro='rhel' major='5' arch='i386' name='kernel'>
     <path>rhel/5/kernel-2.6.18-128.el5.i686.rpm</path>
     <dep>ecryptfs-utils</dep>
   </app>
-  <app os='linux' distro='rhel' major='5' arch='i686' name='kernel-PAE'>
+  <app os='linux' distro='rhel' major='5' arch='i386' name='kernel-PAE'>
     <path>rhel/5/kernel-PAE-2.6.18-128.el5.i686.rpm</path>
     <dep>ecryptfs-utils</dep>
   </app>
@@ -165,13 +165,13 @@ the modifications or additions to /etc/guestconv.conf instead. Configuration in
   <!-- RHEL 4
        All of these RPMs are from RHEL 4.8, which was the first version of RHEL
        4 to support VirtIO -->
-  <app os='linux' distro='rhel' major='4' arch='i686' name='kernel'>
+  <app os='linux' distro='rhel' major='4' arch='i386' name='kernel'>
     <path>rhel/4/kernel-2.6.9-89.EL.i686.rpm</path>
   </app>
-  <app os='linux' distro='rhel' major='4' arch='i686' name='kernel-smp'>
+  <app os='linux' distro='rhel' major='4' arch='i386' name='kernel-smp'>
     <path>rhel/4/kernel-smp-2.6.9-89.EL.i686.rpm</path>
   </app>
-  <app os='linux' distro='rhel' major='4' arch='i686' name='kernel-hugemem'>
+  <app os='linux' distro='rhel' major='4' arch='i386' name='kernel-hugemem'>
     <path>rhel/4/kernel-hugemem-2.6.9-89.EL.i686.rpm</path>
   </app>
   <app os='linux' distro='rhel' major='4' arch='x86_64' name='kernel'>
