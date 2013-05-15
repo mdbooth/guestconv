@@ -58,8 +58,7 @@ class RHEL46_32_LocalInstallTest(unittest.TestCase):
                 log.get_logger_object(test_helper.logger)
             )
 
-            kernel = redhat.Package('kernel', None, '2.6.9', '89.EL',
-                                    'i686')
+            kernel = redhat.Package('kernel', None, '2.6.9', '89.EL', 'i686')
             self.assertTrue(installer.check_available([kernel]))
 
 @unittest.skipUnless(os.path.exists(RHEL52_64_IMG), "image does not exist")
