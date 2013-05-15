@@ -79,7 +79,7 @@ class RHEL52_64_LocalInstallTest(unittest.TestCase):
                 log.get_logger_object(test_helper.logger)
             )
 
-            kernel = redhat.Package('kernel', None, '2.6.18', '92.el5',
+            kernel = redhat.Package('kernel', None, '2.6.18', '128.el5',
                                     'x86_64')
             self.assertTrue(installer.check_available([kernel]))
 
@@ -109,6 +109,6 @@ class RHEL52_64_YumInstallTest(unittest.TestCase):
                 log.get_logger_object(test_helper.logger)
             )
 
-            kernel = redhat.Package('kernel', None, '2.6.18', '92.el5',
+            kernel = redhat.Package('kernel', None, '2.6.18', '128.el5',
                                     'x86_64')
             self.assertTrue(installer.check_available([kernel]))
