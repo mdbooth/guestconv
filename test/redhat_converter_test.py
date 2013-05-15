@@ -59,8 +59,8 @@ class RHEL46_32_LocalInstallTest(unittest.TestCase):
             )
 
             kernel = redhat.Package('kernel', None, '2.6.9', '89.EL',
-                                    'x86_64')
-            self.assertTrue(installer.check_available(kernel, [], []))
+                                    'i686')
+            self.assertTrue(installer.check_available([kernel]))
 
 class RHEL52_64_LocalInstallTest(unittest.TestCase):
     def setUp(self):
@@ -81,7 +81,7 @@ class RHEL52_64_LocalInstallTest(unittest.TestCase):
 
             kernel = redhat.Package('kernel', None, '2.6.18', '92.el5',
                                     'x86_64')
-            self.assertTrue(installer.check_available(kernel, [], []))
+            self.assertTrue(installer.check_available([kernel]))
 
 RHEL_5_X86_64_SYSTEMID = os.path.join(DATA_DIR, 'systemid-rhel-5-x86_64')
 
@@ -111,4 +111,4 @@ class RHEL52_64_YumInstallTest(unittest.TestCase):
 
             kernel = redhat.Package('kernel', None, '2.6.18', '92.el5',
                                     'x86_64')
-            self.assertTrue(installer.check_available(kernel, [], []))
+            self.assertTrue(installer.check_available([kernel]))

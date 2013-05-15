@@ -303,15 +303,9 @@ class YumInstaller(RPMInstaller):
 
         return True
 
-    def check_available(self, kernel, install, upgrade):
-        if kernel is not None:
-            self._logger.info(u'Checking package {pkg} is available via YUM'.
-                              format(pkg=str(kernel)))
-            if not self._yum_cmd(kernel, YumInstaller.LIST):
-                return False
-
-        for i in chain(install, upgrade):
-            self._logger.info(u'Checking package {pkg} is available via YUM'.
+    def check_available(self, pkgs):
+        for i in pkgs:
+            self._logger.info(_(u'Checking package {pkg} is available via YUM').
                               format(pkg=str(i)))
             if not self._yum_cmd(i, YumInstaller.LIST):
                 return False
@@ -441,38 +435,11 @@ class LocalInstaller(RPMInstaller):
                         self._resolve_required_deps([name], required, missing,
                                                     subarch, True, visited)
 
-    def check_available(self, kernel, install, upgrade):
+    def check_available(self, pkgs):
         missing = []
-        if kernel is not None:
-            kernel_path, kernel_deps = self._db.match_app(
-                kernel.name, kernel.arch, self._h, self._root)
-            if kernel_path is None:
-                self._report_missing_app(kernel.name, kernel.arch, missing)
-                kernel_deps = []
-            elif not os.path.exists(kernel_path):
-                missing.append(kernel_path)
-        else:
-            kernel_path = None
-            kernel_deps = []
-
-        # Check if the kernel is available and required
-        if kernel_path is not None:
-            kernel_pkg = self._read_local_rpm(kernel_path)
-            if kernel_pkg is None:
-                missing.append(kernel_path)
-            else:
-                need = True
-                for installed in self.get_installed(kernel_pkg.name,
-                                                    kernel_pkg.arch):
-                    if kernel_pkg <= installed:
-                        need = False
-                        break
-                if not need:
-                    kernel_path = None
-
         required = []
-        self._resolve_required_deps(chain(kernel_deps, install, upgrade),
-                                    required, missing)
+        self._resolve_required_deps(map(lambda pkg: pkg.name, pkgs), required, missing)
+
         if len(missing) > 0:
             self._logger.warn(
                 _(u'The following files referenced in the configuration are '
