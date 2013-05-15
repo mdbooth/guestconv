@@ -263,6 +263,8 @@ class Up2dateInstaller(RPMInstaller):
 
 
 class YumInstaller(RPMInstaller):
+    class NoPackage(GuestConvException): pass
+
     INSTALL = 0
     UPGRADE = 1
     LIST = 2
@@ -274,6 +276,21 @@ class YumInstaller(RPMInstaller):
 
     def __init__(self, h, root, logger):
         super(YumInstaller, self).__init__(h, root, logger)
+
+        # Old versions of yum without --showduplicates won't install or list any
+        # package version other than the latest one
+        self._old_packages = False
+        for line in h.command_lines([u'/usr/bin/yum', u'--help']):
+            if re.search(ur'--showduplicates', line):
+                self._old_packages = True
+                break
+
+        if not self._old_packages:
+            logger.info(_(u'The version of YUM installed in this guest only '
+                          u'supports the installation of the latest version '
+                          u'of a package. Guestconv will not be able to match '
+                          u'version numbers of installed packages during '
+                          u'conversion.'))
 
     def _yum_cmd(self, package, mode):
         cmdline = [u'LANG=C /usr/bin/yum -y']
@@ -292,25 +309,59 @@ class YumInstaller(RPMInstaller):
         except GuestFSException as ex:
             self._logger.debug(u'Yum command failed with: {error}'.
                                format(error=ex.message))
-            return False
+            raise NoPackage()
 
         for line in output:
             if (mode == YumInstaller.INSTALL and
                 re.search(ur'(?:^No package|^Nothing to do)', line)):
-                return False
+                raise NoPackageError()
             if mode == YumInstaller.UPGRADE and re.search(ur'^No Packages'):
-                return False
+                raise NoPackageError()
 
-        return True
+        return output
 
     def check_available(self, pkgs):
         for i in pkgs:
-            self._logger.info(_(u'Checking package {pkg} is available via YUM').
-                              format(pkg=str(i)))
-            if not self._yum_cmd(i, YumInstaller.LIST):
-                return False
+            if self._old_packages:
+                self._logger.info(_(u'Checking package {pkg} is available via '
+                                    u'YUM').format(pkg=str(i)))
+                try:
+                    self._yum_cmd(i, YumInstaller.LIST)
+                    return True
+                except YumInstaller.NoPackage:
+                    return False
+            else:
+                # We just want to lookup name.arch
+                name_arch = Package(i.name, None, None, None, i.arch)
+                self._logger.info(_(u'Checking for latest version of {pkg} '
+                                    u'available via YUM').
+                                  format(pkg=str(name_arch)))
+                output = self._yum_cmd(name_arch, YumInstaller.LIST)
 
-        return True
+                for line in output:
+                    # Look for output lines starting with package name
+                    # containing version and source repo
+                    m = re.match(ur'{}\s+(\S+)\s+\S+\s*$'.
+                                 format(re.escape(str(name_arch))), line)
+                    if m is None:
+                        continue
+
+                    # Parse epoch, version and release from version string
+                    evr = re.match(ur'(?:(\d+):)?([^-]+)(?:-(\S+))?$',
+                                   m.group(1))
+                    if evr is None:
+                        self._logger.debug(u"{}: doesn't look like evr".
+                                           format(m.group(1)))
+                        continue
+
+                    # Check if this package is new enough
+                    found = Package(i.name, evr.group(1), evr.group(2),
+                                    evr.group(3), i.arch)
+                    self._logger.debug(u'Package {pkg} is available'.
+                                       format(pkg=str(found)))
+                    if found >= i:
+                        return True
+                return False
 
 
 class LocalInstaller(RPMInstaller):
