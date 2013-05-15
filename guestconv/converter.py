@@ -87,6 +87,7 @@ class Converter(object):
 
     def __init__(self, target, db_paths, logger=None):
         self._h = guestfs.GuestFS(python_return_dict=True)
+        self._h.set_network(True)
         self._inspection = None
         self._config = guestconv.db.DB(db_paths)
         self._target = target
