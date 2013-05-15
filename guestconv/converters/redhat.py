@@ -450,6 +450,34 @@ class LocalInstaller(RPMInstaller):
         return True
 
 
+class Installer(object):
+    NETWORK_INSTALLERS = [YumInstaller]
+
+    def __init__(self, h, root, db, logger):
+        self._h = h
+        self._root = root
+        self._db = db
+        self._logger = logger
+
+        for c in Installer.NETWORK_INSTALLERS:
+            if c.supports(h, root):
+                self._installer = c(h, root, logger)
+
+        if self._installer is None:
+            self._installer = LocalInstaller(h, root, db, logger)
+
+    def check_available(self, pkgs):
+        if self._installer.check_available(pkgs):
+            return True
+
+        if self._installer.__class__ in Installer.NETWORK_INSTALLERS:
+            self._installer = LocalInstaller(self._h, self._root,
+                                             self._db, self._logger)
+            return self.check_available(pkgs)
+
+        return False
+
+
 class RedHat(BaseConverter):
     def __init__(self, h, target, root, logger):
         super(RedHat,self).__init__(h, target, root, logger)

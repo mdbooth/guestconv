@@ -62,11 +62,11 @@ class RHEL46_32_LocalInstallTest(unittest.TestCase):
                                     'i686')
             self.assertTrue(installer.check_available([kernel]))
 
+@unittest.skipUnless(os.path.exists(RHEL52_64_IMG), "image does not exist")
 class RHEL52_64_LocalInstallTest(unittest.TestCase):
     def setUp(self):
         self.img = TestHelper.image_for(RHEL52_64_IMG)
 
-    @unittest.skipUnless(os.path.exists(RHEL52_64_IMG), "image does not exist")
     def testCheckAvailable(self):
         img = self.img
         img.inspect()
@@ -74,6 +74,22 @@ class RHEL52_64_LocalInstallTest(unittest.TestCase):
                                    '/dev/VolGroup00/LogVol00'):
             c = img.converter
             installer = redhat.LocalInstaller(
+                c._h, '/dev/VolGroup00/LogVol00',
+                db.DB(['{}/conf/guestconv.db'.format(env.topdir)]),
+                log.get_logger_object(test_helper.logger)
+            )
+
+            kernel = redhat.Package('kernel', None, '2.6.18', '128.el5',
+                                    'x86_64')
+            self.assertTrue(installer.check_available([kernel]))
+
+    def testInstallerCheckAvailableFallback(self):
+        img = self.img
+        img.inspect()
+        with converter.RootMounted(img.converter._h,
+                                   '/dev/VolGroup00/LogVol00'):
+            c = img.converter
+            installer = redhat.Installer(
                 c._h, '/dev/VolGroup00/LogVol00',
                 db.DB(['{}/conf/guestconv.db'.format(env.topdir)]),
                 log.get_logger_object(test_helper.logger)
