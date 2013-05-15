@@ -77,9 +77,9 @@ class Package(object):
 
             if v is not None:
                 pos = 0
-                for m in re.finditer(u'(?<=\d)(?=[a-zA-Z])|'
-                                     u'(?<=[a-zA-Z])(?=\d)|'
-                                     u'(?:\W|_)+', v):
+                for m in re.finditer(ur'(?<=\d)(?=[a-zA-Z])|'
+                                     ur'(?<=[a-zA-Z])(?=\d)|'
+                                     ur'(?:\W|_)+', v):
                     yield v[pos:m.start()]
                     pos = m.end()
                 yield v[pos:]
@@ -226,7 +226,7 @@ class RPMInstaller(object):
                    u' 2>&1 ||:')
             error = self._h.sh(cmd)
 
-            if re.search(u'not installed', error):
+            if re.search(ur'not installed', error):
                 return
 
             raise ConversionError(
@@ -234,7 +234,7 @@ class RPMInstaller(object):
                 format(command=cmd, msg=error))
 
         for line in output:
-            m = re.match(u'^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$', line)
+            m = re.match(ur'^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$', line)
             if m is None:
                 raise ConversionError(
                     _(u'Unexpected output from rpm: {output}').
@@ -296,9 +296,9 @@ class YumInstaller(RPMInstaller):
 
         for line in output:
             if (mode == YumInstaller.INSTALL and
-                re.search(u'(?:^No package|^Nothing to do)', line)):
+                re.search(ur'(?:^No package|^Nothing to do)', line)):
                 return False
-            if mode == YumInstaller.UPGRADE and re.search(u'^No Packages'):
+            if mode == YumInstaller.UPGRADE and re.search(ur'^No Packages'):
                 return False
 
         return True
