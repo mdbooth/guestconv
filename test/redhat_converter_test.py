@@ -94,7 +94,7 @@ class RHEL52_64_YumInstallTest(unittest.TestCase):
         h.launch()
         h.inspect_os()
         with converter.RootMounted(h, '/dev/VolGroup00/LogVol00'):
-            h.upload(RHEL_5_X86_64_SYSTEMID, '/etc/sysconfig/systemid')
+            h.upload(RHEL_5_X86_64_SYSTEMID, '/etc/sysconfig/rhn/systemid')
         h.close()
 
     @unittest.skipUnless(os.path.exists(RHEL52_64_IMG), "image does not exist")
