@@ -26,7 +26,7 @@ from images import *
 
 class ConverterTest(unittest.TestCase):
     def setUp(self):
-        self.img = TestHelper.image_for(F17IMG)
+        self.img = TestHelper.image_for(FEDORA_17_64_IMG)
 
     def testInspect(self):
         xml = self.img.inspect()

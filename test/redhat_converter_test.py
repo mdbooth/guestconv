@@ -30,11 +30,11 @@ import guestconv.log as log
 
 TestHelper = test_helper.TestHelper
 
+@unittest.skipUnless(os.path.exists(FEDORA_17_64_IMG), "image does not exist")
 class GrubTest(unittest.TestCase):
     def setUp(self):
-        self.img = TestHelper.image_for(F17IMG)
+        self.img = TestHelper.image_for(FEDORA_17_64_IMG)
 
-    @unittest.skipUnless(os.path.exists(F17IMG), "image does not exist")
     def testListKernels(self):
         self.img.inspect()
         kernels = self.img.list_kernels()
