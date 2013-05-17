@@ -130,7 +130,7 @@ class TestTDL:
 
         img = os.path.join(IMG_DIR, self.name+'.img')
         if os.path.exists(img):
-            print "image %s exists, skipping creation" % image
+            print "image %s exists, skipping creation" % img
 
         else:
             print "building image %s" % img
