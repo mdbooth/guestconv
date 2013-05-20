@@ -32,20 +32,33 @@ from guestconv.lang import _
 
 @functools.total_ordering
 class Package(object):
-    def __init__(self, name, epoch=None, version=None, release=None, arch=None):
+    class InvalidEVR(GuestConvException): pass
+
+    def __init__(self, name, epoch=None, version=None, release=None, arch=None,
+                 evr=None):
         if name is None:
             raise ValueError(u'name argument may not be None')
 
         self.name = name
-        self.epoch = epoch
-        self.version = version
-        self.release = release
         self.arch = arch
+
+        if evr is not None:
+            m = re.match(ur'(?:(\d+):)?([^-]+)(?:-(\S+))?$', evr)
+            if m is None:
+                raise Package.InvalidEVR()
+
+            self.epoch = m.group(1)
+            self.version = m.group(2)
+            self.release = m.group(3)
+        else:
+            self.epoch = epoch
+            self.version = version
+            self.release = release
 
     def __str__(self):
         elems = []
         if self.epoch is not None:
-            elems.append(epoch)
+            elems.append(self.epoch)
             elems.append(u':')
         elems.append(self.name)
         if self.version is not None:
@@ -332,7 +345,7 @@ class YumInstaller(RPMInstaller):
                     return False
             else:
                 # We just want to lookup name.arch
-                name_arch = Package(i.name, None, None, None, i.arch)
+                name_arch = Package(i.name, arch=i.arch)
                 self._logger.info(_(u'Checking for latest version of {pkg} '
                                     u'available via YUM').
                                   format(pkg=str(name_arch)))
@@ -346,17 +359,14 @@ class YumInstaller(RPMInstaller):
                     if m is None:
                         continue
 
-                    # Parse epoch, version and release from version string
-                    evr = re.match(ur'(?:(\d+):)?([^-]+)(?:-(\S+))?$',
-                                   m.group(1))
-                    if evr is None:
+                    try:
+                        found = Package(i.name, evr=m.group(1))
+                    except Package.InvalidEVR:
                         self._logger.debug(u"{}: doesn't look like evr".
                                            format(m.group(1)))
                         continue
 
                     # Check if this package is new enough
-                    found = Package(i.name, evr.group(1), evr.group(2),
-                                    evr.group(3), i.arch)
                     self._logger.debug(u'Package {pkg} is available'.
                                        format(pkg=str(found)))
                     if found >= i:

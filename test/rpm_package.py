@@ -35,6 +35,22 @@ class RpmPackageTest(unittest.TestCase):
         p = Package('foo', version='1.2')
         self.assertEqual(str(p), 'foo-1.2')
 
+        # EVR construction: name, version
+        p = Package('foo', evr='1.2')
+        self.assertEqual(str(p), 'foo-1.2')
+
+        # EVR construction: name, version, release
+        p = Package('foo', evr='1.2-3')
+        self.assertEqual(str(p), 'foo-1.2-3')
+
+        # EVR construction: name, epoch, version
+        p = Package('foo', evr='1:1.2')
+        self.assertEqual(str(p), '1:foo-1.2')
+
+        # EVR construction: name, epoch, version, release
+        p = Package('foo', evr='1:1.2-3')
+        self.assertEqual(str(p), '1:foo-1.2-3')
+
     def testEq(self):
         # Packages with different names are not comparable
         a = Package('foo')
