@@ -151,14 +151,14 @@ class Converter(object):
                     continue
 
                 with RootMounted(h, root):
-                    (root_bl, root_info, root_devices) = converter.inspect()
+                    (root_bl, root_info, root_options) = converter.inspect()
 
                 self._converters[root] = converter
 
                 bootloaders.update(root_bl)
                 roots[root] = {
                     u'info': root_info,
-                    u'devices': root_devices
+                    u'options': root_options
                 }
 
                 # We only want 1 converter to run
@@ -207,22 +207,24 @@ class Converter(object):
             build_info(root[u'info'])
             builder.end(u'info')
 
-            builder.start(u'devices', {})
-            for device in root[u'devices']:
+            builder.start(u'options', {})
+            for option in root[u'options']:
                 attrs = {
-                    u'type': root[u'type'],
-                    u'id': root[u'id'],
-                    u'driver': root[u'driver']
+                    u'type': option[u'type'],
+                    u'description': option[u'description'],
+                    u'choice': option[u'choice'],
+                    u'values': option[u'values']
                 }
-                builder.start(u'device', attrs)
-                options = device[u'options']
-                if options is not None:
-                    for option in options:
-                        builder.start(u'driver', {})
-                        builder.data(option)
-                        builder.end(u'driver')
-                builder.end(u'device')
-            builder.end(u'devices')
+                builder.start(u'option', attrs)
+                values = option[u'values']
+                if values is not None:
+                    for value in values:
+                        builder.start(u'value', {u'description':
+                                                 value[u'description']})
+                        builder.data(value[u'name'])
+                        builder.end(u'value')
+                builder.end(u'option')
+            builder.end(u'options')
 
             builder.end(u'root')
 

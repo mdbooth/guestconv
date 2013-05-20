@@ -32,7 +32,7 @@ class Debian(BaseConverter):
 
     def inspect(self):
         info = {}
-        devices = {}
+        options = {}
 
         h = self._h
         root = self._root
@@ -50,7 +50,7 @@ class Debian(BaseConverter):
 
         bl_disk, bl_props = self._bootloader.inspect()
 
-        return {bl_disk: bl_props}, info, devices
+        return {bl_disk: bl_props}, info, options
 
     def _inspect_bootloader(self):
         for bl in [GrubLegacy, Grub2EFI, Grub2BIOS]:
@@ -62,6 +62,6 @@ class Debian(BaseConverter):
         raise ConversionError(_(u"Didn't detect a bootloader for root %(root)s") %
                               {u'root': self._root})
 
-    def convert(self, bootloaders, devices):
+    def convert(self, bootloaders, options):
         self._logger.info(_(u'Converting root %(name)s') %
                           {u'name': self._root})
