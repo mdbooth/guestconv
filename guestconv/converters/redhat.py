@@ -556,13 +556,15 @@ class RedHat(BaseConverter):
         h = self._h
         root = self._root
 
-        info[u'hostname'] = h.inspect_get_hostname(root)
-        info[u'os'] = h.inspect_get_type(root)
-        info[u'distribution'] = h.inspect_get_distro(root)
-        info[u'arch'] = h.inspect_get_arch(root)
-        info[u'version'] = {
-            u'major': h.inspect_get_major_version(root),
-            u'minor': h.inspect_get_minor_version(root)
+        info = {
+            u'hostname': h.inspect_get_hostname(root),
+            u'os': h.inspect_get_type(root),
+            u'distribution': h.inspect_get_distro(root),
+            u'arch': h.inspect_get_arch(root),
+            u'version': {
+                u'major': h.inspect_get_major_version(root),
+                u'minor': h.inspect_get_minor_version(root)
+            }
         }
 
         self._bootloader = self._inspect_bootloader()
