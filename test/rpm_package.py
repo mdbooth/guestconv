@@ -22,6 +22,19 @@ import unittest
 from guestconv.converters.redhat import Package
 
 class RpmPackageTest(unittest.TestCase):
+    def testConstruction(self):
+        # Full construction
+        p = Package('foo', '1', '1.2', '3', 'i686')
+        self.assertEqual(str(p), '1:foo-1.2-3.i686')
+
+        # Partial construction: name and arch
+        p = Package('foo', arch='i686')
+        self.assertEqual(str(p), 'foo.i686')
+
+        # Partial construction: name, version
+        p = Package('foo', version='1.2')
+        self.assertEqual(str(p), 'foo-1.2')
+
     def testEq(self):
         # Packages with different names are not comparable
         a = Package('foo')
