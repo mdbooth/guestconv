@@ -23,8 +23,8 @@ from guestconv.converters.base import BaseConverter
 from guestconv.lang import _
 
 class Debian(BaseConverter):
-    def __init__(self, h, target, root, logger):
-        super(Debian,self).__init__(h, target, root, logger)
+    def __init__(self, h, target, root, db, logger):
+        super(Debian,self).__init__(h, target, root, db, logger)
         distro = h.inspect_get_distro(root)
         if (h.inspect_get_type(root) != u'linux' or
             distro not in (u'debian', u'ubuntu')):

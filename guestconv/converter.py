@@ -89,7 +89,7 @@ class Converter(object):
         self._h = guestfs.GuestFS(python_return_dict=True)
         self._h.set_network(True)
         self._inspection = None
-        self._config = guestconv.db.DB(db_paths)
+        self._db = guestconv.db.DB(db_paths)
         self._target = target
         self._converters = {}
         self._logger = guestconv.log.get_logger_object(logger)
@@ -142,7 +142,8 @@ class Converter(object):
             for klass in guestconv.converters.all:
                 converter = None
                 try:
-                    converter = klass(h, self._target, root, self._logger)
+                    converter = klass(h, self._target, root,
+                                      self._db, self._logger)
                 except guestconv.exception.UnsupportedConversion:
                     self._logger.debug(
                         u'Converter %s unsupported for root %s' % \

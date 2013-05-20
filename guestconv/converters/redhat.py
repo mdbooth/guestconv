@@ -532,8 +532,8 @@ class Installer(object):
 
 
 class RedHat(BaseConverter):
-    def __init__(self, h, target, root, logger):
-        super(RedHat,self).__init__(h, target, root, logger)
+    def __init__(self, h, target, root, db, logger):
+        super(RedHat, self).__init__(h, target, root, db, logger)
         distro = h.inspect_get_distro(root)
         if (h.inspect_get_type(root) != u'linux' or
                 h.inspect_get_distro(root) not in (u'rhel', u'fedora')):
