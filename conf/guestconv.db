@@ -35,16 +35,15 @@ the modifications or additions to /etc/guestconv.conf instead. Configuration in
   <!-- RHEL 4 bundles the cirrus driver with the main X package -->
   <capability os='linux' distro='rhel' major='4' name='cirrus'/>
 
+  <!-- Fedora -->
   <!-- All current versions of Fedora support VirtIO -->
   <capability os='linux' distro='fedora' name='virtio'/>
 
-  <!-- All current versions of fedora package the cirrus driver in
-       xorg-x11-drv-cirrus -->
   <capability os='linux' distro='fedora' name='cirrus'>
     <dep name='xorg-x11-drv-cirrus'/>
   </capability>
 
-  <!-- RHEL clones: copied from above with distro altered -->
+  <!-- RHEL clones: copied from RHEL with distro altered -->
   <!-- CentOS -->
   <capability os='linux' distro='centos' major='6' name='virtio'/>
   <capability os='linux' distro='centos' major='5' name='virtio'>
@@ -82,12 +81,6 @@ the modifications or additions to /etc/guestconv.conf instead. Configuration in
     <dep name='xorg-x11-drv-cirrus'/>
   </capability>
   <capability os='linux' distro='scientificlinux' major='4' name='cirrus'/>
-
-  <!-- All current versions of fedora package the cirrus driver in
-       xorg-x11-drv-cirrus -->
-  <capability os='linux' distro='fedora' name='cirrus'>
-    <dep name='xorg-x11-drv-cirrus'/>
-  </capability>
 
   <!-- This is a place-holder for the 'user-custom' capability, which allows
        the user to install custom packages during linux conversions. Don't edit
