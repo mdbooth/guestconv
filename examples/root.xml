@@ -31,20 +31,20 @@
             </version>
         </info>
         <options>
-            <option type='graphics' description='Graphics driver' choice='qxl-vga'>
+            <option name='graphics' description='Graphics driver' choice='qxl-vga'>
                 <value description='Spice'>qxl-vga</value>
                 <value description='Cirrus'>cirrus-vga</value>
             </option>
-            <option type='network' description='Network driver' choice='virtio-net'>
+            <option name='network' description='Network driver' choice='virtio-net'>
                 <value description='VirtIO'>virtio-net</value>
                 <value description='Intel E1000'>e1000</value>
             </option>
-            <option type='block' description='Block device driver' choice='virtio-blk'>
+            <option name='block' description='Block device driver' choice='virtio-blk'>
                 <value description='VirtIO'>virtio-blk</value>
                 <value description='IDE'>ide-hd</value>
                 <value description='SCSI'>scsi-hd</value>
             </option>
-            <option type='console' description='Console configuration' choice='virtio-serial'>
+            <option name='console' description='System Console' choice='virtio-serial'>
                 <value description='VirtIO Serial'>virtio-serial</value>
                 <value description='ISA Serial'>isa-serial</value>
                 <value description='Virtual Console'>none</value>
