@@ -53,7 +53,6 @@
                 <value description='YUM with local fallback'>yum</value>
                 <value description='Local files'>local</value>
             </option>
-            <option type='user-custom' description='Install custom packages'/>
         </options>
     </root>
 </guestconv>
