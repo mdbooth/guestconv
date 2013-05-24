@@ -19,19 +19,58 @@
 import os
 import unittest
 import tempfile
-from xml.dom import minidom
+import lxml.etree as ET
 
-from test_helper import TestHelper
-from images import *
+from redhat_converter_test import Fedora17Image
 
-class ConverterTest(unittest.TestCase):
-    def setUp(self):
-        self.img = TestHelper.image_for(FEDORA_17_64_IMG)
-
+class ConverterTest(Fedora17Image):
     def testInspect(self):
-        xml = self.img.inspect()
-        xmldoc = minidom.parseString(xml)
-        self.assertEqual(1, xmldoc.getElementsByTagName('guestconv').length)
+        output = self.img.inspect()
+
+        parser = ET.XMLParser(remove_blank_text=True)
+        inspected = ET.fromstring(output, parser=parser)
+        expected = ET.fromstring('''
+<guestconv>
+  <root name="/dev/VolGroup00/LogVol00">
+    <info>
+      <arch>x86_64</arch>
+      <distribution>fedora</distribution>
+      <hostname>unknown</hostname>
+      <os>linux</os>
+      <version>
+        <major>17</major>
+        <minor>0</minor>
+      </version>
+    </info>
+    <options>
+      <option name="graphics" description="Graphics driver">
+        <value description="Cirrus">cirrus-vga</value>
+        <value description="Spice">qxl-vga</value>
+      </option>
+      <option name="network" description="Network driver">
+        <value description="Intel E1000">e1000</value>
+        <value description="Realtek 8139">rtl8139</value>
+        <value description="VirtIO">virtio-net</value>
+      </option>
+      <option name="block" description="Block device driver">
+        <value description="IDE">ide-hd</value>
+        <value description="SCSI">scsi-hd</value>
+        <value description="VirtIO">virtio-blk</value>
+      </option>
+      <option name="console" description="System Console">
+        <value description="Kernel virtual console">vc</value>
+        <value description="Serial console">serial</value>
+        <value description="VirtIO Serial">virtio-serial</value>
+      </option>
+    </options>
+  </root>
+  <boot>
+    <loader disk="sda" type="BIOS" name="grub2-bios"/>
+  </boot>
+</guestconv>
+        ''', parser=parser)
+
+        self.assertEqual(ET.tostring(inspected), ET.tostring(expected))
 
     def testReentrantInspect(self):
         # we should just get the same object back if inspect multiple times

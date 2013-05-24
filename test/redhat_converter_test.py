@@ -19,6 +19,7 @@
 import env
 
 import unittest
+import re
 
 import test_helper
 from images import *
@@ -30,22 +31,74 @@ import guestconv.log as log
 
 TestHelper = test_helper.TestHelper
 
+#
+# Base classes
+#
+
+RHEL_5_X86_64_SYSTEMID = os.path.join(DATA_DIR, 'systemid-rhel-5-x86_64')
+
+@unittest.skipUnless(os.path.exists(RHEL52_64_IMG), "image does not exist")
+@unittest.skipUnless(os.path.exists(RHEL_5_X86_64_SYSTEMID),
+                     "systemid file does not exist")
+class RHEL52_64_Yum(unittest.TestCase):
+    def setUp(self):
+        self.img = TestHelper.image_for(RHEL52_64_IMG)
+        h = self.img.guestfs_handle()
+        h.launch()
+        h.inspect_os()
+        with converter.RootMounted(h, '/dev/VolGroup00/LogVol00'):
+            h.upload(RHEL_5_X86_64_SYSTEMID, '/etc/sysconfig/rhn/systemid')
+        h.close()
+
+
 @unittest.skipUnless(os.path.exists(FEDORA_17_64_IMG), "image does not exist")
-class GrubTest(unittest.TestCase):
+class Fedora17Image(unittest.TestCase):
     def setUp(self):
         self.img = TestHelper.image_for(FEDORA_17_64_IMG)
 
+        props = test_helper.get_local_props()
+        if u'fedora_mirror' in props:
+            h = self.img.guestfs_handle()
+            h.launch()
+            h.inspect_os()
+            with converter.RootMounted(h, '/dev/VolGroup00/LogVol00'):
+                h.aug_init(u'/', 0)
+
+                mirror = props[u'fedora_mirror']
+
+                h.aug_rm(u'/files/etc/yum.repos.d/fedora.repo'
+                         u'/fedora/mirrorlist')
+                h.aug_set(u'/files/etc/yum.repos.d/fedora.repo/fedora/baseurl',
+                    u'{}/releases/$releasever/Everything/$basearch/os/'.
+                    format(mirror))
+
+                h.aug_rm(u'/files/etc/yum.repos.d/fedora-updates.repo'
+                         u'/updates/mirrorlist')
+                h.aug_set(u'/files/etc/yum.repos.d/fedora-updates.repo'
+                          u'/updates/baseurl',
+                          u'{}/updates/$releasever/$basearch/'.format(mirror))
+
+                h.aug_save()
+            h.close()
+
+
+#
+# Tests
+#
+
+@unittest.skipUnless(os.path.exists(FEDORA_17_64_IMG), "image does not exist")
+class GrubTest(Fedora17Image):
     def testListKernels(self):
         self.img.inspect()
         kernels = self.img.list_kernels()
         self.assertEqual(1, len(kernels))
         self.assertEqual("/boot/vmlinuz-3.3.4-5.fc17.x86_64", kernels[0])
 
+@unittest.skipUnless(os.path.exists(RHEL46_32_IMG), "image does not exist")
 class RHEL46_32_LocalInstallTest(unittest.TestCase):
     def setUp(self):
         self.img = TestHelper.image_for(RHEL46_32_IMG)
 
-    @unittest.skipUnless(os.path.exists(RHEL46_32_IMG), "image does not exist")
     def testCheckAvailable(self):
         img = self.img
         img.inspect()
@@ -98,21 +151,7 @@ class RHEL52_64_LocalInstallTest(unittest.TestCase):
                                     'x86_64')
             self.assertTrue(installer.check_available([kernel]))
 
-RHEL_5_X86_64_SYSTEMID = os.path.join(DATA_DIR, 'systemid-rhel-5-x86_64')
-
-@unittest.skipUnless(os.path.exists(RHEL_5_X86_64_SYSTEMID),
-                     "systemid file does not exist")
-class RHEL52_64_YumInstallTest(unittest.TestCase):
-    def setUp(self):
-        self.img = TestHelper.image_for(RHEL52_64_IMG)
-        h = self.img.guestfs_handle()
-        h.launch()
-        h.inspect_os()
-        with converter.RootMounted(h, '/dev/VolGroup00/LogVol00'):
-            h.upload(RHEL_5_X86_64_SYSTEMID, '/etc/sysconfig/rhn/systemid')
-        h.close()
-
-    @unittest.skipUnless(os.path.exists(RHEL52_64_IMG), "image does not exist")
+class RHEL52_64_YumInstallTest(RHEL52_64_Yum):
     def testCheckAvailable(self):
         img = self.img
         img.inspect()

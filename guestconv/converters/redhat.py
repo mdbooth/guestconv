@@ -531,6 +531,9 @@ class Installer(object):
         if self._installer is None:
             self._installer = LocalInstaller(h, root, db, logger)
 
+    def get_installed(self, name, arch=None):
+        return self._installer.get_installed(name, arch)
+
     def check_available(self, pkgs):
         self._logger.debug(u'Checking availability of: {}'.
                            format(', '.join(map(lambda pkg: str(pkg), pkgs))))
@@ -556,10 +559,47 @@ class RedHat(BaseConverter):
                 h.inspect_get_distro(root) not in (u'rhel', u'fedora')):
             raise UnsupportedConversion()
 
-    def inspect(self):
-        info = {}
-        devices = {}
+    def _check_capability(self, name, installer):
+        h = self._h
+        root = self._root
+        db = self._db
 
+        arch = h.inspect_get_arch(root)
+        check = []
+        cap = db.match_capability(name, arch, h, root)
+        if cap is None:
+            self._logger.debug(u'No {} capability found for this root'.
+                               format(name))
+            return False
+
+        for (pkg, params) in cap.iteritems():
+            try:
+                target = Package(pkg, evr=params[u'minversion'])
+            except Package.InvalidEVR:
+                self._logger.info(_(u'Ignoring invalid minversion for package '
+                                    u'{name} in virtio capability: {version}').
+                                  format(name=pkg,
+                                         version=params[u'minversion']))
+                target = Package(pkg)
+
+            need = not params[u'ifinstalled']
+            for installed in installer.get_installed(pkg):
+                if installed < target:
+                    need = True
+                if installed >= target:
+                    need = False
+                    continue
+            if need:
+                check.append(target)
+
+        # Success if we've got nothing to check
+        if len(check) == 0:
+            return True
+
+        return installer.check_available(check)
+
+
+    def inspect(self):
         h = self._h
         root = self._root
 
@@ -574,6 +614,7 @@ class RedHat(BaseConverter):
             }
         }
 
+        installer = Installer(h, root, self._db, self._logger)
 
         # Drivers which are always available
         graphics = []
@@ -596,6 +637,17 @@ class RedHat(BaseConverter):
             (u'block', _(u'Block device driver'), block),
             (u'console', _(u'System Console'), console)
         ]
+
+        if self._check_capability(u'virtio', installer):
+            network.append((u'virtio-net', u'VirtIO'))
+            block.append((u'virtio-blk', u'VirtIO'))
+            console.append((u'virtio-serial', _(u'VirtIO Serial')))
+
+        if self._check_capability(u'cirrus', installer):
+            graphics.append((u'cirrus-vga', u'Cirrus'))
+
+        if self._check_capability(u'qxl', installer):
+            graphics.append((u'qxl-vga', u'Spice'))
 
         self._bootloader = self._inspect_bootloader()
         bl_disk, bl_props = self._bootloader.inspect()
