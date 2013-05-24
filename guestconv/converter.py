@@ -138,6 +138,10 @@ class Converter(object):
 
         bootloaders = {}
         roots = {}
+
+        builder = ET.TreeBuilder()
+        builder.start(u'guestconv', {})
+
         for root in guestfs_roots:
             for klass in guestconv.converters.all:
                 converter = None
@@ -156,16 +160,39 @@ class Converter(object):
                 self._converters[root] = converter
 
                 bootloaders.update(root_bl)
-                roots[root] = {
-                    u'info': root_info,
-                    u'options': root_options
-                }
+
+                builder.start(u'root', {u'name': root})
+
+                builder.start(u'info', {})
+                def build_info(i):
+                    for name, data in i.iteritems():
+                        builder.start(name, {})
+                        if isinstance(data, dict):
+                            build_info(data)
+                        else:
+                            builder.data(str(data))
+                        builder.end(name)
+                build_info(root_info)
+                builder.end(u'info')
+
+                builder.start(u'options', {})
+                for option in root_options:
+                    attrs = {
+                        u'name': option[0],
+                        u'description': option[1],
+                    }
+                    builder.start(u'option', attrs)
+                    for val_name, val_desc in option[2]:
+                        builder.start(u'value', {u'description': val_desc})
+                        builder.data(val_name)
+                        builder.end(u'value')
+                    builder.end(u'option')
+                builder.end(u'options')
+
+                builder.end(u'root')
 
                 # We only want 1 converter to run
                 break
-
-        builder = ET.TreeBuilder()
-        builder.start(u'guestconv', {})
 
         builder.start(u'boot', {})
         for disk, props in bootloaders.iteritems():
@@ -191,42 +218,6 @@ class Converter(object):
 
             builder.end(u'loader')
         builder.end(u'boot')
-
-        for name, root in roots.iteritems():
-            builder.start(u'root', {u'name': name})
-
-            builder.start(u'info', {})
-            def build_info(i):
-                for name, data in i.iteritems():
-                    builder.start(name, {})
-                    if isinstance(data, dict):
-                        build_info(data)
-                    else:
-                        builder.data(str(data))
-                    builder.end(name)
-            build_info(root[u'info'])
-            builder.end(u'info')
-
-            builder.start(u'options', {})
-            for option in root[u'options']:
-                attrs = {
-                    u'type': option[u'type'],
-                    u'description': option[u'description'],
-                    u'choice': option[u'choice'],
-                    u'values': option[u'values']
-                }
-                builder.start(u'option', attrs)
-                values = option[u'values']
-                if values is not None:
-                    for value in values:
-                        builder.start(u'value', {u'description':
-                                                 value[u'description']})
-                        builder.data(value[u'name'])
-                        builder.end(u'value')
-                builder.end(u'option')
-            builder.end(u'options')
-
-            builder.end(u'root')
 
         builder.end(u'guestconv')
 

@@ -567,8 +567,30 @@ class RedHat(BaseConverter):
             }
         }
 
-        self._bootloader = self._inspect_bootloader()
 
+        # Drivers which are always available
+        graphics = []
+        network = [
+            (u'e1000', u'Intel E1000'),
+            (u'rtl8139', u'Realtek 8139')
+        ]
+        block = [
+            (u'ide-hd', u'IDE'),
+            (u'scsi-hd', u'SCSI')
+        ]
+        console = [
+            (u'vc', _(u'Kernel virtual console')),
+            (u'serial', _(u'Serial console'))
+        ]
+
+        options = [
+            (u'graphics', _(u'Graphics driver'), graphics),
+            (u'network', _(u'Network driver'), network),
+            (u'block', _(u'Block device driver'), block),
+            (u'console', _(u'System Console'), console)
+        ]
+
+        self._bootloader = self._inspect_bootloader()
         bl_disk, bl_props = self._bootloader.inspect()
 
         return {bl_disk: bl_props}, info, options

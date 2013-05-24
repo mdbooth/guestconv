@@ -32,7 +32,7 @@ class Debian(BaseConverter):
 
     def inspect(self):
         info = {}
-        options = {}
+        options = []
 
         h = self._h
         root = self._root
