@@ -322,7 +322,7 @@ class YumInstaller(RPMInstaller):
         except GuestFSException as ex:
             self._logger.debug(u'Yum command failed with: {error}'.
                                format(error=ex.message))
-            raise NoPackage()
+            raise YumInstaller.NoPackage()
 
         for line in output:
             if (mode == YumInstaller.INSTALL and
