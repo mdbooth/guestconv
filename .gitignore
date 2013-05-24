@@ -29,5 +29,6 @@
 /test/.coverage
 /test/data/images
 /test/data/systemid-rhel-5-x86_64
+/test/local.props
 /locale/*.mo
 /locale/install/

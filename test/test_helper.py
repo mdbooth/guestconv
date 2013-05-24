@@ -234,6 +234,21 @@ def build_tpl(name, params):
     tpl = TestTDLTemplate(tpl_path)
     tpl.render(params).build()
 
+def get_local_props():
+    props = {}
+
+    try:
+        with open(env.topdir + '/test/local.props') as f:
+            for line in f:
+                key, value = line.strip().split('=')
+                props[key] = value
+    except IOError as ex:
+        if ex.errno != errno.ENOENT:
+            raise
+
+    return props
+
+
 if __name__ == '__main__':
     tdls = map(lambda x: os.path.basename(x).replace('.tdl', ''),
                glob.glob(os.path.join(TDL_DIR, '*.tdl')))
@@ -248,7 +263,7 @@ if __name__ == '__main__':
 
     elif cmd == 'build':
         tgt = sys.argv[2]
-        params = {}
+        params = get_local_props()
         for arg in sys.argv[3:]:
             key, value = arg.split('=')
             params[key] = value
