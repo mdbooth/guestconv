@@ -532,10 +532,15 @@ class Installer(object):
             self._installer = LocalInstaller(h, root, db, logger)
 
     def check_available(self, pkgs):
+        self._logger.debug(u'Checking availability of: {}'.
+                           format(', '.join(map(lambda pkg: str(pkg), pkgs))))
+
         if self._installer.check_available(pkgs):
             return True
 
         if self._installer.__class__ in Installer.NETWORK_INSTALLERS:
+            self._logger.debug(u'Falling back to local installer')
+
             self._installer = LocalInstaller(self._h, self._root,
                                              self._db, self._logger)
             return self.check_available(pkgs)
