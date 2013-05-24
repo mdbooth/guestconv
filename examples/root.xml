@@ -49,10 +49,6 @@
                 <value description='ISA Serial'>isa-serial</value>
                 <value description='Virtual Console'>none</value>
             </option>
-            <option type='update-method' description='Software installation source' choice='yum'>
-                <value description='YUM with local fallback'>yum</value>
-                <value description='Local files'>local</value>
-            </option>
         </options>
     </root>
 </guestconv>
