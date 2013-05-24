@@ -522,6 +522,8 @@ class Installer(object):
         self._db = db
         self._logger = logger
 
+        self._installer = None
+
         for c in Installer.NETWORK_INSTALLERS:
             if c.supports(h, root):
                 self._installer = c(h, root, logger)
