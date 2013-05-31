@@ -111,7 +111,9 @@ class RHEL46_32_LocalInstallTest(unittest.TestCase):
                 log.get_logger_object(test_helper.logger)
             )
 
-            kernel = redhat.Package('kernel', None, '2.6.9', '89.EL', 'i686')
+            kernel = redhat.Package('kernel',
+                                    version='2.6.9', release='89.EL',
+                                    arch='i686')
             self.assertTrue(installer.check_available([kernel]))
 
 @unittest.skipUnless(os.path.exists(RHEL52_64_IMG), "image does not exist")
@@ -131,8 +133,9 @@ class RHEL52_64_LocalInstallTest(unittest.TestCase):
                 log.get_logger_object(test_helper.logger)
             )
 
-            kernel = redhat.Package('kernel', None, '2.6.18', '128.el5',
-                                    'x86_64')
+            kernel = redhat.Package('kernel',
+                                    version='2.6.18', release='128.el5',
+                                    arch='x86_64')
             self.assertTrue(installer.check_available([kernel]))
 
     def testInstallerCheckAvailableFallback(self):
@@ -147,8 +150,9 @@ class RHEL52_64_LocalInstallTest(unittest.TestCase):
                 log.get_logger_object(test_helper.logger)
             )
 
-            kernel = redhat.Package('kernel', None, '2.6.18', '128.el5',
-                                    'x86_64')
+            kernel = redhat.Package('kernel',
+                                    version='2.6.18', release='128.el5',
+                                    arch='x86_64')
             self.assertTrue(installer.check_available([kernel]))
 
 class RHEL52_64_YumInstallTest(RHEL52_64_Yum):
@@ -163,6 +167,7 @@ class RHEL52_64_YumInstallTest(RHEL52_64_Yum):
                 log.get_logger_object(test_helper.logger)
             )
 
-            kernel = redhat.Package('kernel', None, '2.6.18', '128.el5',
-                                    'x86_64')
+            kernel = redhat.Package('kernel',
+                                    version='2.6.18', release='128.el5',
+                                    arch='x86_64')
             self.assertTrue(installer.check_available([kernel]))
