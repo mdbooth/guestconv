@@ -20,6 +20,7 @@ import env
 
 import unittest
 import re
+import lxml.etree as ET
 
 import test_helper
 from images import *
@@ -115,6 +116,36 @@ class RHEL46_32_LocalInstallTest(unittest.TestCase):
                                     version='2.6.9', release='89.EL',
                                     arch='i686')
             self.assertTrue(installer.check_available([kernel]))
+
+    def testInspect(self):
+        """Check we've got the expected options"""
+        inspected = ET.fromstring(self.img.inspect())
+
+        expected = {
+            u'graphics': [],
+            u'network': [u'e1000', u'rtl8139'],
+            u'block': [u'ide-hd', u'scsi-hd'],
+            u'console': [u'vc', u'serial']
+        }
+
+        options = inspected.xpath(u'/guestconv'
+                                  u"/root[@name='/dev/VolGroup00/LogVol00']"
+                                  u'/options')
+        self.assertTrue(len(options) == 1,
+                        u'No options in returned inspection xml')
+        options = options[0]
+
+        for name, values in expected:
+            option = options.xpath(u"option[@name='{}']".format(name))
+            self.assertTrue(len(option) == 1, u'No {} option'.format(name))
+            option = option[0]
+
+            for value in values:
+                v = option.xpath(u"value[. == '{}']".format(value))
+                self.assertTrue(len(v) == 1,
+                                u'value {} not found for option {}'.
+                                format(value, name))
+
 
 @unittest.skipUnless(os.path.exists(RHEL52_64_IMG), "image does not exist")
 class RHEL52_64_LocalInstallTest(unittest.TestCase):
