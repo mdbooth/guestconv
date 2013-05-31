@@ -99,6 +99,7 @@ class RHEL46_32_LocalInstallTest(unittest.TestCase):
         self.img = TestHelper.image_for(RHEL46_32_IMG)
 
     def testCheckAvailable(self):
+        """Check a kernel package is available via LocalInstaller"""
         img = self.img
         img.inspect()
         with converter.RootMounted(img.converter._h,
