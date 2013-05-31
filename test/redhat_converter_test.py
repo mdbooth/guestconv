@@ -86,7 +86,6 @@ class Fedora17Image(unittest.TestCase):
 # Tests
 #
 
-@unittest.skipUnless(os.path.exists(FEDORA_17_64_IMG), "image does not exist")
 class GrubTest(Fedora17Image):
     def testListKernels(self):
         self.img.inspect()
