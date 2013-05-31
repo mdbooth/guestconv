@@ -31,7 +31,7 @@ import subprocess
 import sys
 import tempfile
 
-import xml.etree.ElementTree as et
+import lxml.etree as ET
 
 import guestconv
 import guestconv.converters.redhat as redhat
@@ -76,6 +76,45 @@ def logger(level, msg):
 
     if level >= log_level:
         print msg
+
+def cmpXMLNoOrdering(x1, x2):
+    """Compare 2 XML documents, ignoring the ordering of attributes and
+    elements, and whitespace surrounding text nodes"""
+
+    def cmpNode(n1, n2):
+        if n1.tag != n2.tag or n1.attrib != n2.attrib:
+            return False
+
+        if n1.text is None:
+            n1.text = ''
+        else:
+            n1.text = n1.text.strip()
+        if n2.text is None:
+            n2.text = ''
+        else:
+            n2.text = n2.text.strip()
+
+        if n1.text != n2.text:
+            return False
+
+        def cmpChildren(c1, c2):
+            if len(c1) != len(c2):
+                return False
+
+            if len(c1) == 0:
+                return True
+
+            for i1 in c1:
+                c1p = c1 - set([i1])
+                for i2 in c2:
+                    if cmpNode(i1, i2):
+                        if cmpChildren(c1p, c2 - set([i2])):
+                            return True
+
+        return cmpChildren(set(n1.getchildren()), set(n2.getchildren()))
+
+    return cmpNode(ET.fromstring(x1), ET.fromstring(x2))
+
 
 class TestTDLTemplate:
     defaults = {
@@ -198,7 +237,7 @@ class TestInstance:
         # retrieve instance mac
         self.xml = run_cmd([VIRSH_BIN, '-c', 'qemu:///system',
                                        'dumpxml', name])
-        xmldoc = et.fromstring(self.xml)
+        xmldoc = ET.fromstring(self.xml)
         self.mac = xmldoc.find('./devices/interface/mac')
         self.mac = self.mac.get('address')
 

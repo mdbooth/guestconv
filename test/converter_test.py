@@ -19,17 +19,14 @@
 import os
 import unittest
 import tempfile
-import lxml.etree as ET
 
 from redhat_converter_test import Fedora17Image
+from test_helper import cmpXMLNoOrdering
 
 class ConverterTest(Fedora17Image):
     def testInspect(self):
         output = self.img.inspect()
-
-        parser = ET.XMLParser(remove_blank_text=True)
-        inspected = ET.fromstring(output, parser=parser)
-        expected = ET.fromstring('''
+        expected = '''
 <guestconv>
   <root name="/dev/VolGroup00/LogVol00">
     <info>
@@ -68,9 +65,9 @@ class ConverterTest(Fedora17Image):
     <loader disk="sda" type="BIOS" name="grub2-bios"/>
   </boot>
 </guestconv>
-        ''', parser=parser)
+        '''
 
-        self.assertEqual(ET.tostring(inspected), ET.tostring(expected))
+        self.assertTrue(cmpXMLNoOrdering(output, expected))
 
     def testReentrantInspect(self):
         # we should just get the same object back if inspect multiple times
