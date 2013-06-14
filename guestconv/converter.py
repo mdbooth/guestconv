@@ -96,11 +96,6 @@ class Converter(object):
         # a less-than DEBUG logging message (since 10 == DEBUG)
         self._logger.log( 5 , u'Converter __init_() completed' )
 
-    def __del__(self):
-        """Close the libguestfs handle when garbage collected."""
-
-        self._h.close()
-
     def add_drive(self, path, hint=None):
         """Add the drive that has the virtual image that we want to
         convert.  Multiple drives may be added.  <-- TODO correct?
