@@ -20,10 +20,7 @@
 import guestconv.exception
 
 class BaseConverter(object):
-    def __init__(self, h, target, root, db, logger):
-        if target != 'rhev':
-            raise guestconv.exception.UnsupportedConversion()
-
+    def __init__(self, h, root, db, logger):
         self._h = h
         self._root = root
         self._db = db

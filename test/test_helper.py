@@ -211,8 +211,7 @@ class TestImage:
 
     def __init__(self, name, *images):
         self.name = name
-        self.converter = Converter('rhev',
-                                   ['%s/conf/guestconv.db' % env.topdir],
+        self.converter = Converter(['%s/conf/guestconv.db' % env.topdir],
                                    logger)
 
         # We store a reference to the overlays to ensure they aren't garbage

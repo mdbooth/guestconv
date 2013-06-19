@@ -61,7 +61,7 @@ class RootMounted(object):
 
 class Converter(object):
 
-    """Convert a guest's disk images(s) to run on a target hypervisor.
+    """Convert a guest's disk images(s) to run on a new hypervisor.
 
     A logging.Logger object *or* function may be passed in.  If a
     function is given, the function will receive all log messages
@@ -79,18 +79,16 @@ class Converter(object):
     the environment variable GUESTCONV_LOG_LEVEL is defined (one of
     NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL).
 
-    :param target: string indicating the hypervisor.
     :param db_paths: list of filenames (xml databases describing capabilities)
     :param logger: optional logging.Logger object or just a function
 
     """
 
-    def __init__(self, target, db_paths, logger=None):
+    def __init__(self, db_paths, logger=None):
         self._h = guestfs.GuestFS(python_return_dict=True)
         self._h.set_network(True)
         self._inspection = None
         self._db = guestconv.db.DB(db_paths)
-        self._target = target
         self._converters = {}
         self._logger = guestconv.log.get_logger_object(logger)
         # a less-than DEBUG logging message (since 10 == DEBUG)
@@ -112,13 +110,8 @@ class Converter(object):
     def inspect(self):
         """Inspect the guest image(s) and return conversion options.
 
-        Inspect the drive, record needed transformations (to
-        make the OS(es) bootable by the target hypervisor) in the XML
-        document which is returned to the caller.  Gracefully handles
-        multi-boot (meaning there are multiple "root" partitions and
-        possibly multi-OS'es).
-
-        This is a read-only operation.
+        Inspect the drive, and return available transformations as an XML
+        document.
 
         :returns:  XML document (a string)
 
@@ -141,8 +134,7 @@ class Converter(object):
             for klass in guestconv.converters.all:
                 converter = None
                 try:
-                    converter = klass(h, self._target, root,
-                                      self._db, self._logger)
+                    converter = klass(h, root, self._db, self._logger)
                 except guestconv.exception.UnsupportedConversion:
                     self._logger.debug(
                         u'Converter {} unsupported for root {}'
