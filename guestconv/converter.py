@@ -145,8 +145,8 @@ class Converter(object):
                                       self._db, self._logger)
                 except guestconv.exception.UnsupportedConversion:
                     self._logger.debug(
-                        u'Converter %s unsupported for root %s' % \
-                              (converter, root))
+                        u'Converter {} unsupported for root {}'
+                        .format(klass.__name__, root))
                     continue
 
                 with RootMounted(h, root):
