@@ -1,0 +1,17 @@
+<guestconv>
+    <cpus>2</cpus>
+    <memory>4294967296</memory>
+    <arch>x86_64</arch>
+    <controller type='ide'>
+        <disk format='raw'>file:///path/to/ide0</disk><!-- hda -->
+    </controller>
+    <controller type='scsi'>
+        <disk format='qcow2'>file:///path/to/scsi0</disk><!-- sda -->
+    </controller>
+    <controller type='scsi'>
+        <disk format='raw'>nbd://example.com/path</disk><!-- sdb -->
+    </controller>
+    <controller type='cciss'>
+        <disk format='raw'>file:///path/to/cciss0</disk><!-- cciss/c0d0 -->
+    </controller>
+</guestconv>

@@ -20,9 +20,10 @@
 import guestconv.exception
 
 class BaseConverter(object):
-    def __init__(self, h, root, db, logger):
+    def __init__(self, h, root, guest, db, logger):
         self._h = h
         self._root = root
+        self._guest = guest
         self._db = db
         self._logger = guestconv.log.get_logger_object(logger)
 

@@ -19,6 +19,7 @@
 
 import guestfs
 import lxml.etree as ET
+from urlparse import urlparse
 
 import guestconv.converters
 import guestconv.exception
@@ -84,28 +85,126 @@ class Converter(object):
 
     """
 
-    def __init__(self, db_paths, logger=None):
+    def __init__(self, guest, db_paths, logger=None):
         self._h = guestfs.GuestFS(python_return_dict=True)
         self._h.set_network(True)
         self._inspection = None
         self._db = guestconv.db.DB(db_paths)
         self._converters = {}
         self._logger = guestconv.log.get_logger_object(logger)
+
+        try:
+            desc = ET.fromstring(guest)
+        except lxml.etree.ParseError as ex:
+            raise ValueError(_(u'Invalid guest XML: {message}').
+                             format(message=ex.message))
+
+        def _get_single_value(name):
+            for v in desc.xpath(u'/guestconv/{name}[1]'.format(name=name)):
+                return v.text
+            return None
+
+        def _get_single_int(name):
+            v = _get_single_value(name)
+            if v is None:
+                return None
+            try:
+                return int(v)
+            except ValueError:
+                raise ValueError(_(u'Invalid guest XML: value for {name} '
+                                   u'({value}) is not a valid integer').
+                                 format(name=name, value=v))
+
+        controllers = []
+        self._guest = {
+            u'cpus': _get_single_int(u'cpus'),
+            u'memory': _get_single_int(u'memory'),
+            u'arch': _get_single_value(u'arch'),
+            u'controllers': controllers
+        }
+
+        # a = 1
+        # z = 26
+        # aa = 27
+        # zz = 702
+        # aaa = 703
+        def _index_to_disk_name(i, name=u''):
+            if i == 0:
+                return name
+
+            mod = i % 26
+            if mod == 0:
+                mod = 26
+
+            # ord(u'a') - 1 = 96
+            return _index_to_disk_name((i-mod)/26, chr(96+mod)+name)
+
+        # Disk and controller index counters
+        guestfs_d = 0
+        ide_c = 0
+        ide_d = 0
+        scsi_d = 0
+        cciss_c = 0
+        cciss_d = 0
+
+        for c in desc.xpath(u'/guestconv/controller'):
+            typ = c.get(u'type')
+
+            disks = []
+            controllers.append({
+                u'type': typ,
+                u'disks': disks
+            })
+
+            for d in c.xpath(u'disk'):
+                format = d.get(u'format')
+                url = urlparse(d.text)
+
+                hint = None
+                if typ == u'ide':
+                    ide_d += 1
+                    hint = u'ide' + _index_to_disk_name(ide_c*4 + ide_d)
+                elif typ == u'scsi':
+                    scsi_d += 1
+                    hint = u'scsi' + _index_to_disk_name(scsi_d)
+                elif typ == u'cciss':
+                    hint = u'cciss/c{c}d{d}'.format(c=cciss_c, d=cciss_d)
+                    cciss_d += 1
+
+                protocol = url.scheme
+                if protocol == u'':
+                    protocol = u'file'
+
+                server = url.netloc
+                if server == u'':
+                    server = None
+
+                path = url.path
+                if path == u'':
+                    path = None
+
+                guestfs_d += 1
+                disks.append({
+                    u'guestfs': u'sd' + _index_to_disk_name(guestfs_d),
+                    u'format': format,
+                    u'protocol': protocol,
+                    u'server': server,
+                    u'path': path,
+                    u'hint': hint
+                })
+
+                self._h.add_drive_opts(path, protocol=protocol, server=server,
+                                       format=format, name=hint)
+
+            if typ == u'ide':
+                ide_c += 1
+                ide_d = 0
+            elif typ == u'cciss':
+                cciss_c += 1
+                cciss_d = 0
+
         # a less-than DEBUG logging message (since 10 == DEBUG)
         self._logger.log( 5 , u'Converter __init_() completed' )
-
-    def add_drive(self, path, hint=None):
-        """Add the drive that has the virtual image that we want to
-        convert.  Multiple drives may be added.  <-- TODO correct?
-
-        :param path: path to the image
-        :param hint: TODO significance of hint?
-
-        """
-        if hint:
-            self._h.add_drive(path, name=path)
-        else:
-            self._h.add_drive(path)
 
     def inspect(self):
         """Inspect the guest image(s) and return conversion options.
@@ -134,7 +233,8 @@ class Converter(object):
             for klass in guestconv.converters.all:
                 converter = None
                 try:
-                    converter = klass(h, root, self._db, self._logger)
+                    converter = klass(h, root, self._guest,
+                                      self._db, self._logger)
                 except guestconv.exception.UnsupportedConversion:
                     self._logger.debug(
                         u'Converter {} unsupported for root {}'

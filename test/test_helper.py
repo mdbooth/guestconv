@@ -211,12 +211,21 @@ class TestImage:
 
     def __init__(self, name, *images):
         self.name = name
-        self.converter = Converter(['%s/conf/guestconv.db' % env.topdir],
-                                   logger)
 
         # We store a reference to the overlays to ensure they aren't garbage
         # collected before the TestImage
         self._ovls = []
+
+        guest = ET.fromstring('''
+        <guestconv>
+            <cpus>1</cpus>
+            <memory>1073741824</memory>
+            <arch>x86_64</arch>
+            <controller type='scsi'/>
+        </guestconv>
+        ''')
+
+        (controller,) = guest.xpath('/guestconv/controller')
 
         # Create a qcow2 overlay for each image and add it to the converter
         for img in images:
@@ -225,7 +234,13 @@ class TestImage:
                                    '-o', 'backing_file='+img, ovl.name])
             self._ovls.append(ovl)
 
-            self.converter.add_drive(ovl.name)
+            disk = controller.makeelement('disk', attrib={'format': 'qcow2'})
+            disk.text='file://{}'.format(os.path.abspath(ovl.name))
+            controller.append(disk)
+
+        self.converter = Converter(ET.tostring(guest),
+                                   ['%s/conf/guestconv.db' % env.topdir],
+                                   logger)
 
 
 class TestInstance:
