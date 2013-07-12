@@ -41,6 +41,7 @@ RHEL_5_X86_64_SYSTEMID = os.path.join(DATA_DIR, 'systemid-rhel-5-x86_64')
 @unittest.skipUnless(os.path.exists(RHEL52_64_IMG), "image does not exist")
 @unittest.skipUnless(os.path.exists(RHEL_5_X86_64_SYSTEMID),
                      "systemid file does not exist")
+@unittest.skipIf('GUESTCONV_NONETWORK' in os.environ, 'no network')
 class RHEL52_64_Yum(unittest.TestCase):
     def setUp(self):
         self.img = TestHelper.image_for(RHEL52_64_IMG)
@@ -53,6 +54,7 @@ class RHEL52_64_Yum(unittest.TestCase):
 
 
 @unittest.skipUnless(os.path.exists(FEDORA_17_64_IMG), "image does not exist")
+@unittest.skipIf('GUESTCONV_NONETWORK' in os.environ, 'no network')
 class Fedora17Image(unittest.TestCase):
     def setUp(self):
         self.img = TestHelper.image_for(FEDORA_17_64_IMG)
