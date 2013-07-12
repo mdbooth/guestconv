@@ -91,10 +91,17 @@ class Fedora17Image(unittest.TestCase):
 
 class GrubTest(Fedora17Image):
     def testListKernels(self):
-        self.img.converter.inspect()
-        kernels = self.img.list_kernels()
+        img = self.img
+
+        img.converter.inspect()
+        with converter.RootMounted(img.converter._h,
+                                   '/dev/VolGroup00/LogVol00'):
+            kernels = (img.converter._converters['/dev/VolGroup00/LogVol00'].
+                                     _bootloader.list_kernels())
+
         self.assertEqual(1, len(kernels))
-        self.assertEqual("/boot/vmlinuz-3.3.4-5.fc17.x86_64", kernels[0])
+        self.assertEqual('/boot/vmlinuz-3.3.4-5.fc17.x86_64', kernels[0])
+
 
 @unittest.skipUnless(os.path.exists(RHEL46_32_IMG), "image does not exist")
 class RHEL46_32_LocalInstallTest(unittest.TestCase):

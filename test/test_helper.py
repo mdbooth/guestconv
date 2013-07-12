@@ -200,12 +200,6 @@ class TestImage:
             h.add_drive(ovl.name)
         return h
 
-    def list_kernels(self):
-        with RootMounted(self.converter._h, '/dev/VolGroup00/LogVol00'):
-            grub = redhat.Grub2BIOS(
-                self.converter._h, '/dev/VolGroup00/LogVol00', logger)
-            return grub.list_kernels()
-
     def __init__(self, name, *images):
         self.name = name
 
