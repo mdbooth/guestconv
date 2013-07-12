@@ -89,7 +89,7 @@ class Fedora17Image(unittest.TestCase):
 
 class GrubTest(Fedora17Image):
     def testListKernels(self):
-        self.img.inspect()
+        self.img.converter.inspect()
         kernels = self.img.list_kernels()
         self.assertEqual(1, len(kernels))
         self.assertEqual("/boot/vmlinuz-3.3.4-5.fc17.x86_64", kernels[0])
@@ -102,7 +102,7 @@ class RHEL46_32_LocalInstallTest(unittest.TestCase):
     def testCheckAvailable(self):
         """Check a kernel package is available via LocalInstaller"""
         img = self.img
-        img.inspect()
+        img.converter.inspect()
         with converter.RootMounted(img.converter._h,
                                    '/dev/VolGroup00/LogVol00'):
             c = img.converter
@@ -119,7 +119,7 @@ class RHEL46_32_LocalInstallTest(unittest.TestCase):
 
     def testInspect(self):
         """Check we've got the expected options"""
-        inspected = ET.fromstring(self.img.inspect())
+        inspected = ET.fromstring(self.img.converter.inspect())
 
         expected = {
             u'graphics': [],
@@ -154,7 +154,7 @@ class RHEL52_64_LocalInstallTest(unittest.TestCase):
 
     def testCheckAvailable(self):
         img = self.img
-        img.inspect()
+        img.converter.inspect()
         with converter.RootMounted(img.converter._h,
                                    '/dev/VolGroup00/LogVol00'):
             c = img.converter
@@ -171,7 +171,7 @@ class RHEL52_64_LocalInstallTest(unittest.TestCase):
 
     def testInstallerCheckAvailableFallback(self):
         img = self.img
-        img.inspect()
+        img.converter.inspect()
         with converter.RootMounted(img.converter._h,
                                    '/dev/VolGroup00/LogVol00'):
             c = img.converter
@@ -189,7 +189,7 @@ class RHEL52_64_LocalInstallTest(unittest.TestCase):
 class RHEL52_64_YumInstallTest(RHEL52_64_Yum):
     def testCheckAvailable(self):
         img = self.img
-        img.inspect()
+        img.converter.inspect()
         with converter.RootMounted(img.converter._h,
                                    '/dev/VolGroup00/LogVol00'):
             c = img.converter

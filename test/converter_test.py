@@ -25,7 +25,7 @@ from test_helper import cmpXMLNoOrdering
 
 class ConverterTest(Fedora17Image):
     def testInspect(self):
-        output = self.img.inspect()
+        output = self.img.converter.inspect()
         expected = '''
 <guestconv>
   <root name="/dev/VolGroup00/LogVol00">
@@ -71,8 +71,8 @@ class ConverterTest(Fedora17Image):
 
     def testReentrantInspect(self):
         # we should just get the same object back if inspect multiple times
-        xml1 = self.img.inspect()
-        xml2 = self.img.inspect()
+        xml1 = self.img.converter.inspect()
+        xml2 = self.img.converter.inspect()
         self.assertTrue(xml1 is xml2)
 
     def testConvert(self):

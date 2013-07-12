@@ -29,4 +29,5 @@ class GrubTest(unittest.TestCase):
         self.img = TestHelper.image_for(UBUNTU_1210_64_IMG)
 
     def testNoBootloader(self):
-        self.assertRaises(guestconv.exception.ConversionError, self.img.inspect)
+        self.assertRaises(guestconv.exception.ConversionError,
+                          self.img.converter.inspect)
