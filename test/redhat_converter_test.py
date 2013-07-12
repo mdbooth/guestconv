@@ -137,13 +137,15 @@ class RHEL46_32_LocalInstallTest(unittest.TestCase):
                         u'No options in returned inspection xml')
         options = options[0]
 
-        for name, values in expected:
+        for name in expected:
+            values = expected[name]
+
             option = options.xpath(u"option[@name='{}']".format(name))
             self.assertTrue(len(option) == 1, u'No {} option'.format(name))
             option = option[0]
 
             for value in values:
-                v = option.xpath(u"value[. == '{}']".format(value))
+                v = option.xpath(u"value[. = '{}']".format(value))
                 self.assertTrue(len(v) == 1,
                                 u'value {} not found for option {}'.
                                 format(value, name))
