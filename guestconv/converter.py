@@ -324,7 +324,12 @@ class Converter(object):
         :returns:  TODO
 
         """
-        dom = ET.fromstring(desc)
+
+        try:
+            dom = ET.fromstring(desc)
+        except lxml.etree.ParseError as ex:
+            raise ValueError(_(u'Invalid conversion description: {message}').
+                             format(message=ex.message))
 
         bootloaders = {}
         roots = {}
