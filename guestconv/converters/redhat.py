@@ -27,7 +27,8 @@ from copy import copy
 from itertools import chain, izip_longest
 
 from guestconv.exception import *
-from guestconv.converters.grub import *
+from guestconv.converters.exception import *
+import guestconv.converters.grub
 from guestconv.converters.base import BaseConverter
 from guestconv.lang import _
 
@@ -652,17 +653,17 @@ class RedHat(BaseConverter):
         if self._check_capability(u'qxl', installer):
             graphics.append((u'qxl-vga', u'Spice'))
 
-        self._bootloader = self._inspect_bootloader()
+        try:
+            self._bootloader = guestconv.converters.grub.detect(
+                h, root, self, self._logger)
+        except BootLoaderNotFound:
+            raise ConversionError(_(u"Didn't detect a bootloader for root "
+                                    u'{root}').format(root=self._root))
+
         bl_disk, bl_props = self._bootloader.inspect()
 
         return {bl_disk: bl_props}, info, options
 
-    def _inspect_bootloader(self):
-        for bl in [GrubLegacy, Grub2EFI, Grub2BIOS]:
-            try:
-                return bl(self._h, self._root, self._logger)
-            except BootLoaderNotFound:
-                pass # Try the next one
 
         raise ConversionError(_(u"Didn't detect a bootloader for root %(root)s") %
                               {u'root': self._root})

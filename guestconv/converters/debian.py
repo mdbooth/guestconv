@@ -17,9 +17,10 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-from guestconv.exception import *
-from guestconv.converters.grub import *
+import guestconv.converters.grub
 from guestconv.converters.base import BaseConverter
+from guestconv.exception import *
+from guestconv.converters.exception import *
 from guestconv.lang import _
 
 class Debian(BaseConverter):
@@ -46,21 +47,16 @@ class Debian(BaseConverter):
             u'minor': h.inspect_get_minor_version(root)
         }
 
-        self._bootloader = self._inspect_bootloader()
+        try:
+            self._bootloader = guestconv.converters.grub.detect(
+                h, root, self, self._logger)
+        except BootLoaderNotFound:
+            raise ConversionError(_(u"Didn't detect a bootloader for root "
+                                    u'{root}').format(root=self._root))
 
         bl_disk, bl_props = self._bootloader.inspect()
 
         return {bl_disk: bl_props}, info, options
-
-    def _inspect_bootloader(self):
-        for bl in [GrubLegacy, Grub2EFI, Grub2BIOS]:
-            try:
-                return bl(self._h, self._root, self._logger)
-            except BootLoaderNotFound:
-                pass # Try the next one
-
-        raise ConversionError(_(u"Didn't detect a bootloader for root %(root)s") %
-                              {u'root': self._root})
 
     def convert(self, bootloaders, options):
         self._logger.info(_(u'Converting root %(name)s') %

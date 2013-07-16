@@ -26,10 +26,67 @@ from guestconv.converters.exception import *
 from guestconv.lang import _
 from guestconv.converters.util import *
 
+def detect(h, root, converter, logger):
+    '''Detect a grub bootloader, and return an appropriate object'''
 
-# Functions supported by grubby, and therefore common between grub legacy and
-# grub2
-class Grub(object):
+    # Check all devices for an EFI boot partition
+    for device in h.list_devices():
+        try:
+            guid = h.part_get_gpt_type(device, 1)
+        except GuestFSException:
+            # Not EFI if partition isn't GPT
+            next
+
+        if guid == u'C12A7328-F81F-11D2-BA4B-00A0C93EC93B':
+            # Look for the EFI boot partition in mountpoints
+            try:
+                mp = h.mountpoints()[device + '1']
+            except KeyError:
+                logger.debug(u'Detected EFI bootloader with no mountpoint '
+                             u'on disk {}'.format(device))
+                next
+
+            for cfg in h.glob_expand(u'{}/EFI/*/grub.*'.format(mp)):
+                m = re.search(u'grub\.(conf|cfg)$')
+                if m.group(1) == u'conf':
+                    return GrubEFI(h, root, converter, logger, device, cfg)
+                else:
+                    return Grub2EFI(h, root, converter, logger, device, cfg)
+
+    # Look for grub legacy config
+    for cfg in [u'/boot/grub/grub.conf', u'/boot/grub/menu.lst']:
+        if h.exists(cfg):
+            return GrubBIOS(h, root, converter, logger, cfg)
+
+    # Look for grub2 config
+    if h.exists(u'/boot/grub2/grub.cfg'):
+        return Grub2BIOS(h, root, converter, logger)
+
+    raise BootLoaderNotFound()
+
+
+class GrubBase(object):
+    '''Functions supported by grubby, and therefore common between grub legacy
+    and grub2
+    '''
+
+    def __init__(self, h, root, converter, logger):
+        self._h = h
+        self._root = root
+        self._converter = converter
+        self._logger = logger
+        self._disk = None
+
+    def installed_on(self, disk):
+        if disk == self._disk:
+            self._logger.debug(u'Bootloader {} can convert {}'.
+                               format(self.__class__, disk))
+            return True
+
+        self._logger.debug(u"Bootloader {} installed on {} can't convert {}".
+                           format(self.__class__, self._disk, disk))
+        return False
+
     def get_initrd(self, path):
         for line in h.command_lines([u'grubby', u'--info', path]):
             m = re.match(u'^initrd=(\S+)', line)
@@ -41,21 +98,13 @@ class Grub(object):
             {u'kernel': path})
 
 
-# Methods for inspecting and manipulating grub legacy
-class GrubLegacy(Grub):
-    def __init__(self, h, root, logger):
-        self._h = h
-        self._root = root
-        self._logger = logger
+class Grub(GrubBase):
+    '''Methods for inspecting and manipulating grub legacy'''
 
-        self._grub_conf = None
-        for path in [u'/boot/grub/grub.conf', u'/boot/grub/menu.lst']:
-            if h.exists(path):
-                self._grub_conf = path
-                break
+    def __init__(self, h, root, converter, logger, cfg):
+        super(Grub, self).__init__(h, root, converter, logger)
 
-        if self._grub_conf is None:
-            raise BootLoaderNotFound()
+        self._grub_conf = cfg
 
         # Find the path which needs to be prepended to paths in grub.conf to
         # make them absolute
@@ -75,41 +124,48 @@ class GrubLegacy(Grub):
         # grub.conf location, but augeas has done this by default for some time
         # now.
 
-    def inspect(self):
-        m = re.match(u'^/dev/([a-z]*)[0-9]*$', self._grub_device)
-        disk = m.group(1)
-        props = {
-            u'type': u'BIOS',
-            u'name': u'grub-legacy'
-        }
-
-        return disk, props
-
     def list_kernels(self):
+        '''List all kernels from grub.conf in the order that grub would try
+        them'''
+
         h = self._h
         grub_conf = self._grub_conf
         grub_fs = self._grub_fs
 
-        # List all kernels from grub.conf in the order that grub would try them
 
-        paths = []
-        # Try to add the default kernel to the front of the list. This will
-        # fail if there is no default, or if the default specifies a
-        # non-existent kernel.
-        try:
-            default = h.aug_get(u'/files%s/default' % grub_conf)
-            paths.extend(
-                h.aug_match(u'/files%s/title[%s]/kernel' % (grub_conf, default))
-            )
-        except GuestFSException:
-            pass # We don't care
+        # Get a list of all kernels
+        paths = h.aug_match(u'/files{}/title/kernel'.format(grub_conf))
 
-        # Add kernel paths from grub.conf in the order they are listed. This
-        # will add the default kernel twice, but it doesn't matter.
-        try:
-            paths.extend(h.aug_match(u'/files%s/title/kernel' % grub_conf))
-        except GuestFSException as ex:
-            augeas_error(h, ex)
+        def _default_first():
+            '''Try to move the default kernel to the front of the list. This
+            will fail if there is no default, or if the default specifies a
+            non-existent kernel'''
+
+            try:
+                default_str = h.aug_get(u'/files{}/default'.format(grub_conf))
+            except GuestFSException:
+                return # We don't care if there is no default
+
+            try:
+                default_int = int(default_str) - 1
+            except ValueError:
+                self._logger.info(_(u'{path} contains invalid default: '
+                                    u'{default').
+                                    format(path=grub_conf, default=default_str))
+                return
+
+            # Nothing to do if the default is already first in the list
+            if default_int == 0:
+                return
+
+            # Grub indices are zero-based, augeas is 1-based
+            default_path = (u'/files{}/title[{}]/kernel'.
+                            format(grub_conf, default_int - 1))
+
+            # Put the default at the beginning of the list
+            paths = filter(lambda x: x != default_path, paths)
+            paths.insert(0, default_path)
+        _default_first()
 
         # Fetch the value of all detected kernels, and sanity check them
         kernels = []
@@ -119,21 +175,71 @@ class GrubLegacy(Grub):
                 continue
             checked[path] = True
 
-            try:
-                kernel = grub_fs + h.aug_get(path)
-            except GuestFSException as ex:
-                augeas_error(h, ex)
+            kernel = grub_fs + h.aug_get(path)
 
             if h.exists(kernel):
                 kernels.append(kernel)
             else:
-                self._logger.warn(_(u"grub refers to %(kernel)s, which doesn't exist") %
-                                  {u'kernel': kernel})
+                self._logger.warn(_(u"grub refers to {kernel}, which doesn't "
+                                    "exist").format(kernel=kernel))
 
         return kernels
 
 
-class Grub2(Grub):
+class GrubBIOS(Grub):
+    def __init__(self, h, root, converter, logger, cfg):
+        super(GrubBIOS, self).__init__(h, root, converter, logger, cfg)
+
+    def inspect(self):
+        m = re.match(u'^/dev/([a-z]*)[0-9]*$', self._grub_device)
+        disk = m.group(1)
+        props = {
+            u'type': u'BIOS',
+            u'name': u'grub-bios'
+        }
+
+        return disk, props
+
+
+class GrubEFI(Grub):
+    def __init__(self, h, root, converter, logger, device, cfg):
+        super(GrubEFI, self).__init__(h, root, converter, logger, cfg)
+
+        self._disk = device
+
+    def inspect(self):
+        props = {
+            u'type': u'EFI',
+            u'name': u'grub-efi',
+            u'replacement': {
+                u'name': u'grub-bios',
+                u'type': u'BIOS'
+            }
+        }
+
+        return self._disk, props
+
+    def convert(self, target):
+        if target != 'grub-bios':
+            raise ConversionError(_(u'Cannot convert grub-efi bootloader to '
+                                    u'{target}').format(target=target))
+
+        grub_conf = u'/boot/grub/grub.conf'
+
+        h = self._h
+        h.cp(self._grub_conf, grub_conf)
+        h.ln_sf(grub_conf, u'/etc/grub.conf')
+
+        # Reload to push up grub.conf in its new location
+        h.aug_load()
+
+        h.command([u'grub-install', self._grub_device])
+
+        return GrubBIOS(self._h, self._root, self._converter, self._logger,
+                        grub_conf)
+
+
+class Grub2(GrubBase):
     def list_kernels(self):
         h = self._h
 
@@ -156,39 +262,33 @@ class Grub2(Grub):
 
 
 class Grub2BIOS(Grub2):
-    def __init__(self, h, root, logger):
+    def __init__(self, h, root, converter, logger):
         if not h.exists(u'/boot/grub2/grub.cfg'):
             raise BootLoaderNotFound()
 
-        self._h = h
-        self._root = root
-        self._logger = root
+        super(Grub2BIOS, self).__init__(h, root, converter, logger)
 
-    def inspect(self):
         # Find the grub device
-        disk = None
         mounts = self._h.inspect_get_mountpoints(self._root)
         for path in [u'/boot/grub2', u'/boot', u'/']:
             if path in mounts:
                 m = re.match(u'^/dev/([a-z]*)[0-9]*$', mounts[path])
-                disk = m.group(1)
+                self._disk = m.group(1)
                 break
 
+    def inspect(self):
         props = {
             u'type': u'BIOS',
             u'name': u'grub2-bios'
         }
 
-        return disk, props
+        return self._disk, props
 
 
 class Grub2EFI(Grub2):
-    def __init__(self, h, root, logger):
-        self._h = h
-        self._root = root
-        self._logger = logger
+    def __init__(self, h, root, converter, logger):
+        super(Grub2EFI, self).__init__(h, root, converter, logger)
 
-        self._disk = None
         # Check all devices for an EFI boot partition
         for device in h.list_devices():
             try:
@@ -225,11 +325,44 @@ class Grub2EFI(Grub2):
         props = {
             u'type': u'EFI',
             u'name': u'grub2-efi',
-            u'replacement': u'grub2-bios',
-            u'options': [
-                {u'type': u'BIOS', u'name': u'grub2-bios'},
-                {u'type': u'EFI', u'name': u'grub2-efi'},
-            ]
+            u'replacement': {
+                u'name': u'grub2-bios',
+                u'type': u'BIOS'
+            }
         }
 
         return self._disk, props
+
+    def convert(self, target):
+        if target != 'grub2-bios':
+            raise ConversionError(_(u'Cannot convert grub2-efi bootloader to '
+                                    u'{target}').format(target=target))
+
+        # For grub2, we:
+        #   Turn the EFI partition into a BIOS Boot Partition
+        #   Remove the former EFI partition from fstab
+        #   Install the non-EFI version of grub
+        #   Install grub2 in the BIOS Boot Partition
+        #   Regenerate grub.cfg
+        h = self._h
+
+        if not self._converter._install_capability('grub2-bios'):
+            raise ConversionError(_(u'Failed to install bios version of grub2'))
+
+        # Relabel the EFI boot partition as a BIOS boot partition
+        h.part_set_gpt_type(self._disk, 1,
+                            u'21686148-6449-6E6F-744E-656564454649')
+
+        # Delete the fstab entry for the EFI boot partition
+        for node in h.aug_match(u"/files/etc/fstab/*[file = '/boot/efi']"):
+            h.aug_rm(node)
+
+        try:
+            h.aug_save()
+        except GuestfsException as ex:
+            augeas_error(h, ex)
+
+        h.command([u'grub2-install', self._disk])
+        h.command([u'grub2-mkconfig', u'-o', u'/boot/grub2/grub.cfg'])
+
+        return Grub2BIOS(h, self._root, self._converter, self._logger)
