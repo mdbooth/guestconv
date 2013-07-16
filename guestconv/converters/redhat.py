@@ -330,9 +330,9 @@ class YumInstaller(RPMInstaller):
         for line in output:
             if (mode == YumInstaller.INSTALL and
                 re.search(ur'(?:^No package|^Nothing to do)', line)):
-                raise NoPackageError()
+                raise YumInstaller.NoPackage()
             if mode == YumInstaller.UPGRADE and re.search(ur'^No Packages'):
-                raise NoPackageError()
+                raise YumInstaller.NoPackage()
 
         return output
 
