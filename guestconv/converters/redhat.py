@@ -20,6 +20,7 @@
 import errno
 import functools
 import os.path
+import re
 import rpm
 
 from copy import copy
