@@ -336,32 +336,37 @@ class Converter(object):
 
         for loader in dom.xpath(u'/guestconv/boot/loader'):
             disk = loader.get(u'disk')
-            props = {
-                u'type': loader.get(u'type')
-            }
-            replacement = loader.get(u'replacement')
-            if replacement is not None:
-                props[u'replacement'] = replacement
-
-            bootloaders[disk] = props
+            replacement = None
+            for replacement_e in loader.iterchildren():
+                replacement = replacement_e.text
+                break
+            bootloaders[disk] = replacement
 
         for root in dom.xpath(u'/guestconv/root'):
-            name = root.get(u'name')
+            rootname = root.get(u'name')
 
             try:
-                converter = self._converters[name]
+                converter = self._converters[rootname]
             except KeyError:
                 raise guestconv.exception.InvalidConversion \
-                    (_(u'root %(root)s specified in desc does not exist') %
-                     {u'root': name})
+                    (_(u'root {root} specified in desc does not exist').
+                     format(root=rootname))
 
-            devices = []
-            for device in root.xpath(u'device'):
-                devices.append({
-                    u'type': device.get(u'type'),
-                    u'id': device.get(u'id'),
-                    u'driver': device.get(u'driver')
-                })
+            options = {}
+            for option in root.xpath(u'options/option'):
+                optname = option.get(u'name')
+
+                value = None
+                for value_e in option.iterchildren():
+                    value = value_e.text
+                    break
+
+                if value is None:
+                    raise guestconv.exception.InvalidConversion \
+                        (_(u'option {option} in root {root} does not have a '
+                           u'value').format(option=optname, root=rootname))
+
+                options[optname] = value
 
             with RootMounted(self._h, name):
-                converter.convert(bootloaders, devices)
+                converter.convert(bootloaders, options)

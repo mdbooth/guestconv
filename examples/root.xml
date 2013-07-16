@@ -1,11 +1,11 @@
 <guestconv>
     <boot>
-        <loader disk='sda' type='none' replacement='grub2-bios'>
-            <loader type='BIOS' name='grub2-bios'/>
+        <loader disk='sda' type='none'>
+            <replacement type='BIOS'>grub2-bios<replacement/>
         </loader>
         <!-- Mandatory replacement of an EFI bootloader with a BIOS one
-            <loader disk='sda' type='EFI' name='grub2-efi' replacement='grub2-bios'>
-                <loader type='BIOS' name='grub2-bios'/>
+            <loader disk='sda' type='EFI' name='grub2-efi'>
+                <replacement type='BIOS'>grub2-bios<replacement/>
             </loader>
         -->
         <!-- Information only: no possible replacement
@@ -31,24 +31,27 @@
             </version>
         </info>
         <options>
-            <option name='graphics' description='Graphics driver' choice='qxl-vga'>
+            <option name='graphics' description='Graphics driver'>
                 <value description='Spice'>qxl-vga</value>
                 <value description='Cirrus'>cirrus-vga</value>
             </option>
-            <option name='network' description='Network driver' choice='virtio-net'>
+            <option name='network' description='Network driver'>
                 <value description='VirtIO'>virtio-net</value>
                 <value description='Intel E1000'>e1000</value>
             </option>
-            <option name='block' description='Block device driver' choice='virtio-blk'>
+            <option name='block' description='Block device driver'>
                 <value description='VirtIO'>virtio-blk</value>
                 <value description='IDE'>ide-hd</value>
                 <value description='SCSI'>scsi-hd</value>
             </option>
-            <option name='console' description='System Console' choice='virtio-serial'>
+            <option name='console' description='System Console'>
                 <value description='VirtIO Serial'>virtio-serial</value>
                 <value description='ISA Serial'>isa-serial</value>
                 <value description='Virtual Console'>none</value>
             </option>
         </options>
+        <agents>
+            <agent name="vmware-tools"/>
+        </agents>
     </root>
 </guestconv>
