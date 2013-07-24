@@ -32,6 +32,8 @@ import guestconv.converters.grub
 from guestconv.converters.base import BaseConverter
 from guestconv.lang import _
 
+RHEL_BASED = (u'rhel', u'centos', u'scientificlinux', u'redhat-based')
+
 @functools.total_ordering
 class Package(object):
     class InvalidEVR(GuestConvException): pass
@@ -560,7 +562,7 @@ class RedHat(BaseConverter):
         super(RedHat, self).__init__(h, root, guest, db, logger)
         distro = h.inspect_get_distro(root)
         if (h.inspect_get_type(root) != u'linux' or
-                h.inspect_get_distro(root) not in (u'rhel', u'fedora')):
+                h.inspect_get_distro(root) not in [u'fedora'] + RHEL_BASED):
             raise UnsupportedConversion()
 
     def _check_capability(self, name, installer):
