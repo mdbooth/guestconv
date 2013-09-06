@@ -19,7 +19,7 @@
 
 """Internal functions useful to more than 1 converter"""
 
-__all__ = ['augeas_error']
+__all__ = [u'augeas_error', u'Network']
 
 import re
 
@@ -65,3 +65,30 @@ def augeas_error(h, ex):
         raise ConversionError(u'\n'.join(msg))
 
     raise ex
+
+resolv = u'/etc/resolv.conf'
+resolv_bak = u'/etc/resolv.conf.v2vtmp'
+class Network(object):
+    '''Execute a block of code with networking configured in the guest'''
+
+    def __init__(self, h):
+        self._h = h
+
+    def __enter__(self):
+        h = self._h
+
+        # Backup: don't care if it's a file
+        self._resolv_bak = h.exists(resolv_bak)
+
+        if self._resolv_bak:
+            h.mv(resolv, resolv_bak)
+
+        h.write_file(resolv, u'nameserver 169.254.2.3', 0)
+
+    def __exit__(self, typ, value, tb):
+        h = self._h
+
+        if self._resolv_bak:
+            h.mv(resolv_bak, resolv)
+        else:
+            h.rm(resolv)

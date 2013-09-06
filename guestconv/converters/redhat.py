@@ -30,6 +30,7 @@ from guestconv.exception import *
 from guestconv.converters.exception import *
 import guestconv.converters.grub
 from guestconv.converters.base import BaseConverter
+from guestconv.converters.util import *
 from guestconv.lang import _
 
 RHEL_BASED = (u'rhel', u'centos', u'scientificlinux', u'redhat-based')
@@ -192,27 +193,6 @@ class Package(object):
         return self._cmp(other) < 0
 
 
-class GuestNetworking(object):
-    """Execute a block of code with guest networking configured"""
-
-    def __init__(self, h):
-        self._h = h
-        self._old_resolv_conf = None
-
-    def __enter__(self):
-        h = self._h
-        if h.exists(u'/etc/resolv.conf'):
-            self._old_resolv_conf = h.mktemp(u'/etc/resolv.conf.XXXXXX')
-            h.mv(u'/etc/resolv.conf', self._old_resolv_conf)
-            h.write_file(u'/etc/resolv.conf', u'nameserver 169.254.2.3', 0)
-
-    def __exit__(self, type, value, tb):
-        if self._old_resolv_conf is not None:
-            self._h.mv(self._old_resolv_conf, u'/etc/resolv.conf')
-
-        return False
-
-
 class RPMInstaller(object):
     def __init__(self, h, root, logger):
         self._h = h
@@ -323,7 +303,7 @@ class YumInstaller(RPMInstaller):
         cmdline.append(str(package))
 
         try:
-            with GuestNetworking(self._h):
+            with Network(self._h):
                 output = self._h.sh_lines(" ".join(cmdline))
         except GuestFSException as ex:
             self._logger.debug(u'Yum command failed with: {error}'.
