@@ -221,8 +221,7 @@ class RPMInstaller(object):
             # assume it's not a real error.
 
             cmd = (u'LANG=C ' +
-                   u' '.join(map(lambda x: u"'"+x+u"'", rpmcmd)) +
-                   u' 2>&1 ||:')
+                   u' '.join([u"'"+i+u"'" for i in rpmcmd]) + u' 2>&1 ||:')
             error = self._h.sh(cmd)
 
             if re.search(ur'not installed', error):
@@ -487,7 +486,8 @@ class LocalInstaller(RPMInstaller):
     def check_available(self, pkgs):
         missing = []
         required = []
-        self._resolve_required_deps(map(lambda pkg: pkg.name, pkgs), required, missing)
+        self._resolve_required_deps([pkg.name for pkg in pkgs],
+                                    required, missing)
 
         if len(missing) > 0:
             self._logger.warn(
@@ -522,7 +522,7 @@ class Installer(object):
 
     def check_available(self, pkgs):
         self._logger.debug(u'Checking availability of: {}'.
-                           format(', '.join(map(lambda pkg: str(pkg), pkgs))))
+                           format(', '.join([str(pkg) for pkg in pkgs])))
 
         if self._installer.check_available(pkgs):
             return True
