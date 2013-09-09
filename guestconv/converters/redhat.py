@@ -232,7 +232,7 @@ class RPMInstaller(object):
                 format(command=cmd, msg=error))
 
         for line in output:
-            m = re.match(ur'^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$', line)
+            m = re.match(ur'(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$', line)
             if m is None:
                 raise ConversionError(
                     _(u'Unexpected output from rpm: {output}').
@@ -311,9 +311,9 @@ class YumInstaller(RPMInstaller):
 
         for line in output:
             if (mode == YumInstaller.INSTALL and
-                re.search(ur'(?:^No package|^Nothing to do)', line)):
+                re.match(ur'(?:No package|Nothing to do)', line)):
                 raise YumInstaller.NoPackage()
-            if mode == YumInstaller.UPGRADE and re.search(ur'^No Packages'):
+            if mode == YumInstaller.UPGRADE and re.match(ur'No Packages'):
                 raise YumInstaller.NoPackage()
 
         return output
