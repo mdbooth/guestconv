@@ -252,9 +252,8 @@ class RPMInstaller(object):
 class Up2dateInstaller(RPMInstaller):
     @classmethod
     def supports(klass, h, root):
-        if (h.exists(u'/usr/bin/up2date') and
-                h.exists(u'/etc/sysconfig/rhn/systemid')):
-            return True
+        return (h.exists(u'/usr/bin/up2date') and
+                h.exists(u'/etc/sysconfig/rhn/systemid'))
 
     def __init__(self, h, root, logger):
         super(Up2dateInstaller, self).__init__(h, root, logger)
@@ -269,8 +268,7 @@ class YumInstaller(RPMInstaller):
 
     @classmethod
     def supports(klass, h, root):
-        if h.exists(u'/usr/bin/yum'):
-            return True
+        return h.exists(u'/usr/bin/yum')
 
     def __init__(self, h, root, logger):
         super(YumInstaller, self).__init__(h, root, logger)
