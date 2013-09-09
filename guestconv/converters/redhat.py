@@ -598,7 +598,7 @@ class RedHat(BaseConverter):
             }
         }
 
-        installer = Installer(h, root, self._db, self._logger)
+        self._installer = Installer(h, root, self._db, self._logger)
 
         # Drivers which are always available
         graphics = []
@@ -627,10 +627,10 @@ class RedHat(BaseConverter):
             block.append((u'virtio-blk', u'VirtIO'))
             console.append((u'virtio-serial', _(u'VirtIO Serial')))
 
-        if self._check_capability(u'cirrus', installer):
+        if self._check_capability(u'cirrus', self._installer):
             graphics.append((u'cirrus-vga', u'Cirrus'))
 
-        if self._check_capability(u'qxl', installer):
+        if self._check_capability(u'qxl', self._installer):
             graphics.append((u'qxl-vga', u'Spice'))
 
         try:
