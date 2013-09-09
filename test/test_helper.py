@@ -110,6 +110,7 @@ def cmpXMLNoOrdering(x1, x2):
                     if cmpNode(i1, i2):
                         if cmpChildren(c1p, c2 - set([i2])):
                             return True
+            return False
 
         return cmpChildren(set(n1.getchildren()), set(n2.getchildren()))
 
