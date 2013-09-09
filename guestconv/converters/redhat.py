@@ -290,7 +290,7 @@ class YumInstaller(RPMInstaller):
                           u'version numbers of installed packages during '
                           u'conversion.'))
 
-    def _yum_cmd(self, package, mode):
+    def _yum_cmd(self, mode, packages):
         cmdline = [u'LANG=C /usr/bin/yum -y']
         if mode == YumInstaller.INSTALL:
             cmdline.append(u'install')
@@ -299,7 +299,7 @@ class YumInstaller(RPMInstaller):
         else:
             cmdline.append(u'list')
 
-        cmdline.append(str(package))
+        cmdline.extend([str(pkg) for pkg in packages])
 
         try:
             with Network(self._h):
@@ -324,7 +324,7 @@ class YumInstaller(RPMInstaller):
                 self._logger.info(_(u'Checking package {pkg} is available via '
                                     u'YUM').format(pkg=str(i)))
                 try:
-                    self._yum_cmd(i, YumInstaller.LIST)
+                    self._yum_cmd(YumInstaller.LIST, [i])
                     return True
                 except YumInstaller.NoPackage:
                     return False
@@ -334,7 +334,7 @@ class YumInstaller(RPMInstaller):
                 self._logger.info(_(u'Checking for latest version of {pkg} '
                                     u'available via YUM').
                                   format(pkg=str(name_arch)))
-                output = self._yum_cmd(name_arch, YumInstaller.LIST)
+                output = self._yum_cmd(YumInstaller.LIST, [name_arch])
 
                 for line in output:
                     # Look for output lines starting with package name
