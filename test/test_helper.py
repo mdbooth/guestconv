@@ -174,7 +174,7 @@ class TestTDL:
 
         else:
             print "building image %s" % img
-            run_cmd([OZ_BIN, '-t', '3600', '-s', img, '-d3',
+            run_cmd([OZ_BIN, '-t', '3600', '-s', img, '-d3', '-u',
                              os.path.join(TDL_DIR, self.tdl)])
 
         return img
