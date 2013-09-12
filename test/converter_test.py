@@ -20,11 +20,13 @@ import os
 import unittest
 import tempfile
 
-from redhat_converter_test import Fedora17Image
+from redhat_converter_test import make_image_test
+from images import *
 from test_helper import cmpXMLNoOrdering
 
-class ConverterTest(Fedora17Image):
-    def testInspect(self):
+Fedora19Image = make_image_test('Fedora19_64', FEDORA_19_64_IMG)
+class ConverterTest(Fedora19Image):
+    def testXML(self):
         output = self.img.converter.inspect()
         expected = '''
 <guestconv>
@@ -32,10 +34,10 @@ class ConverterTest(Fedora17Image):
     <info>
       <arch>x86_64</arch>
       <distribution>fedora</distribution>
-      <hostname>unknown</hostname>
+      <hostname>localhost.localdomain</hostname>
       <os>linux</os>
       <version>
-        <major>17</major>
+        <major>19</major>
         <minor>0</minor>
       </version>
     </info>
@@ -67,7 +69,8 @@ class ConverterTest(Fedora17Image):
 </guestconv>
         '''
 
-        self.assertTrue(cmpXMLNoOrdering(output, expected))
+        self.assertTrue(cmpXMLNoOrdering(output, expected),
+                        'XML differs from expected: {}'.format(output))
 
     def testReentrantInspect(self):
         # we should just get the same object back if inspect multiple times

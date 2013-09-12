@@ -1,17 +1,30 @@
 <template>
-  <name>f17jeos</name>
+  <name>f19jeos</name>
   <os>
     <name>Fedora</name>
-    <version>17</version>
+    <version>19</version>
     <arch>x86_64</arch>
     <install type='url'>
-      <url>{{fedora_mirror}}/releases/17/Fedora/x86_64/os/</url>
+      <url>{{fedora_mirror}}/releases/19/Fedora/x86_64/os/</url>
     </install>
   </os>
-  <description>Fedora 17</description>
+  <description>Fedora 19</description>
+
+  <repositories>
+    <repository name='fedora'>
+      <url>{{fedora_mirror}}/releases/19/Everything/x86_64/os</url>
+      <signed>no</signed><!-- oz doesn't install the gpg key automatically -->
+    </repository>
+    <repository name='fedora-updates'>
+      <url>{{fedora_mirror}}/updates/19/x86_64</url>
+      <signed>no</signed><!-- oz doesn't install the gpg key automatically -->
+    </repository>
+  </repositories>
 
   <packages>
-    <package name="openssh-server"/>
+    <package name='openssh-server'/>
+    <package name='xorg-x11-drv-cirrus'/>
+    <package name='xorg-x11-drv-qxl'/>
   </packages>
 
   <files>

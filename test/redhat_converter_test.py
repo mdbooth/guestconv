@@ -32,6 +32,56 @@ import guestconv.log as log
 
 TestHelper = test_helper.TestHelper
 
+def make_image_test(name, img, expectedRoot=None, expectedOptions=None):
+    """Test inspection of an image"""
+
+    def make_setUp(img):
+        def setUp(self):
+            self.img = TestHelper.image_for(img)
+
+        return setUp
+
+    def make_testInspect(img, expectedRoot, expectedOptions):
+        def testInspect(self):
+            inspected = ET.fromstring(self.img.converter.inspect())
+
+            root = inspected.xpath(u"/guestconv/root[@name='{root}']"
+                                   .format(root=expectedRoot))
+            self.assertTrue(len(root) == 1,
+                            u'Expected to find root: {expected}\n{xml}'
+                            .format(expected=expectedRoot,
+                                    xml=ET.tostring(inspected)))
+            root = root[0]
+
+            options = root.xpath(u'/options')
+            self.assertTrue(len(options) == 1,
+                            u'No options in returned inspection xml')
+            options = options[0]
+
+            for name in expectedOptions:
+                values = expectedOptions[name]
+
+                option = options.xpath(u"option[@name='{}']".format(name))
+                self.assertTrue(len(option) == 1, u'No {} option'.format(name))
+                option = option[0]
+
+                for value in values:
+                    v = option.xpath(u"value[. = '{}']".format(value))
+                    self.assertTrue(len(v) == 1,
+                                    u'value {} not found for option {}'.
+                                    format(value, name))
+
+        return testInspect
+
+    methods = { 'setUp': make_setUp(img) }
+    if expectedRoot is not None and expectedOptions is not None:
+        methods['testInspect'] = make_testInspect(img,
+                                                  expectedRoot, expectedOptions)
+
+    return unittest.skipUnless(os.path.exists(img),
+                               '{img} does not exist'.format(img=img))(
+        type(name, (unittest.TestCase,), methods))
+
 #
 # Base classes
 #
@@ -89,7 +139,11 @@ class Fedora17Image(unittest.TestCase):
 # Tests
 #
 
-class GrubTest(Fedora17Image):
+@unittest.skipUnless(os.path.exists(FEDORA_19_64_IMG), "image does not exist")
+class GrubTest(unittest.TestCase):
+    def setUp(self):
+        self.img = TestHelper.image_for(FEDORA_19_64_IMG)
+
     def testListKernels(self):
         img = self.img
 
