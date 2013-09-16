@@ -20,13 +20,14 @@ import os.path
 import unittest
 import guestconv
 
-from test_helper import TestHelper
+import test_helper
 from images import *
 
-@unittest.skipUnless(os.path.exists(UBUNTU_1210_64_IMG), "image does not exist")
+@unittest.skipUnless(os.path.exists(UBUNTU_1210_64_IMG),
+                     '{img} does not exist'.format(img=UBUNTU_1210_64_IMG))
 class GrubTest(unittest.TestCase):
     def setUp(self):
-        self.img = TestHelper.image_for(UBUNTU_1210_64_IMG)
+        self.img = test_helper.image_for(UBUNTU_1210_64_IMG)
 
     def testNoBootloader(self):
         self.assertRaises(guestconv.exception.ConversionError,

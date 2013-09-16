@@ -30,6 +30,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import unittest
 
 import lxml.etree as ET
 
@@ -115,6 +116,55 @@ def cmpXMLNoOrdering(x1, x2):
         return cmpChildren(set(n1.getchildren()), set(n2.getchildren()))
 
     return cmpNode(ET.fromstring(x1), ET.fromstring(x2))
+
+
+def make_image_test(name, img, expected_root=None, expected_options=None,
+                    *extra_methods):
+    """Test inspection of an image"""
+
+    def setUp(self):
+        self.img = image_for(img)
+        self.img.converter.inspect()
+
+    def testInspect(self):
+        inspected = ET.fromstring(self.img.converter.inspect())
+
+        root = inspected.xpath(u"/guestconv/root[@name='{root}']"
+                               .format(root=expected_root))
+        self.assertEqual(len(root), 1,
+                        u'Expected to find root: {expected}\n{xml}'
+                        .format(expected=expected_root,
+                                xml=ET.tostring(inspected)))
+        root = root[0]
+
+        options = root.xpath(u'options')
+        self.assertEqual(len(options), 1,
+                        u'No options in returned inspection xml')
+        options = options[0]
+
+        for name in expected_options:
+            values = expected_options[name]
+
+            option = options.xpath(u"option[@name='{}']".format(name))
+            self.assertEqual(len(option), 1, u'No {} option'.format(name))
+            option = option[0]
+
+            for value in values:
+                v = option.xpath(u"value[. = '{}']".format(value))
+                self.assertEqual(len(v), 1,
+                                u'value {} not found for option {}'.
+                                format(value, name))
+
+    methods = { 'setUp': setUp }
+    if expected_root is not None and expected_options is not None:
+        methods['testInspect'] = testInspect
+
+    for method_set in extra_methods:
+        methods.update(method_set)
+
+    return unittest.skipUnless(os.path.exists(img),
+                               '{img} does not exist'.format(img=img))(
+        type(name, (unittest.TestCase,), methods))
 
 
 class TestTDLTemplate:
@@ -264,11 +314,9 @@ class TestInstance:
                   ("guest@%s" % self.ip), cmd])
 
 
-class TestHelper:
-    @classmethod
-    def image_for(cls, image):
-        name = image.replace('.img', '')
-        return TestImage(name, image)
+def image_for(image):
+    return TestImage(image.replace('.img', ''), image)
+
 
 def build_tdl(name):
     tdl = os.path.join(TDL_DIR, name+'.tdl')
