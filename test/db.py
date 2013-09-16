@@ -20,11 +20,12 @@
 import env
 
 import guestfs
+import os.path
 import unittest
 
-import guestconv.db
+from images import *
 
-import rhel_stub
+import guestconv.db
 
 class DBParseErrorTestCase(unittest.TestCase):
     def runTest(self):
@@ -32,13 +33,15 @@ class DBParseErrorTestCase(unittest.TestCase):
             guestconv.db.DB(['%s/test/data/db/parse-error.db' % env.topdir])
 
 
-class DBLookupTestCase(rhel_stub.RHELStubTestCase):
+@unittest.skipUnless(os.path.exists(RHEL52_64_IMG),
+                     '{img} does not exist'.format(img=RHEL52_64_IMG))
+class DBLookupTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super(DBLookupTestCase, cls).setUpClass()
 
         cls._h = guestfs.GuestFS()
-        cls._h.add_drive(cls._img.name, name='/dev/sda')
+        cls._h.add_drive(RHEL52_64_IMG, name='/dev/sda')
         cls._h.launch()
         roots = cls._h.inspect_os()
         cls._root = roots[0]
