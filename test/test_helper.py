@@ -69,6 +69,7 @@ def run_cmd(cmd):
     out.seek(0)
     return out.read().strip()
 
+
 def logger(level, msg):
     try:
         log_level = int(os.environ['TEST_LOG_LEVEL'])
@@ -77,6 +78,7 @@ def logger(level, msg):
 
     if level >= log_level:
         print msg
+
 
 def cmpXMLNoOrdering(x1, x2):
     """Compare 2 XML documents, ignoring the ordering of attributes and
@@ -201,6 +203,7 @@ class TestTDLTemplate:
 
         return tdl
 
+
 class TestTDL:
     def __init__(self, tdl, name):
         self.tdl = tdl
@@ -322,10 +325,12 @@ def build_tdl(name):
     tdl = os.path.join(TDL_DIR, name+'.tdl')
     TestTDL(tdl, name).build()
 
+
 def build_tpl(name, params):
     tpl_path = os.path.join(TDL_DIR, name+'.tdl.tpl')
     tpl = TestTDLTemplate(tpl_path)
     tpl.render(params).build()
+
 
 def get_local_props():
     props = {}
