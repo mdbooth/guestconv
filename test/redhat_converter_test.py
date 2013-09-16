@@ -151,3 +151,9 @@ RHEL_52_64_Test = test_helper.make_image_test(
     make_grub_tests('/dev/VolGroup00/LogVol00',
                     ['/boot/vmlinuz-2.6.18-92.el5'])
 )
+
+all_tests = unittest.TestSuite((
+    unittest.makeSuite(Fedora_19_64_Test),
+    unittest.makeSuite(RHEL_46_32_Test),
+    unittest.makeSuite(RHEL_52_64_Test)
+))

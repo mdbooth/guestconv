@@ -191,3 +191,6 @@ class RpmPackageTest(unittest.TestCase):
         self.assertFalse(b >= a)
         self.assertTrue(b < a)
         self.assertTrue(b <= a)
+
+
+all_tests = unittest.makeSuite(RpmPackageTest)

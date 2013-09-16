@@ -32,3 +32,7 @@ class GrubTest(unittest.TestCase):
     def testNoBootloader(self):
         self.assertRaises(guestconv.exception.ConversionError,
                           self.img.converter.inspect)
+
+all_tests = unittest.TestSuite((
+    unittest.makeSuite(GrubTest)
+))

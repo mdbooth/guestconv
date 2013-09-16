@@ -119,15 +119,10 @@ class DBLookupTestCase(unittest.TestCase):
         self.assertEqual([], deps)
 
 
-class DBTestSuite(unittest.TestSuite):
-    def __init__(self):
-        self.addTest(DBParseErrorTestCase())
-        self.addTest(DBLookupTestCase("testCapabilityMatch"))
-        self.addTest(DBLookupTestCase("testCapabilityOverride"))
-        self.addTest(DBLookupTestCase("testCapabilityNoMatch"))
-        self.addTest(DBLookupTestCase("testAppMatch"))
-        self.addTest(DBLookupTestCase("testAppNoMatch"))
-        self.addTest(DBLookupTestCase("testAppMatchNoPathRoot"))
+all_tests = unittest.TestSuite((
+    DBParseErrorTestCase(),
+    unittest.makeSuite(DBLookupTestCase)
+))
 
 
 if __name__ == "__main__":
