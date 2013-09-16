@@ -198,7 +198,7 @@ class RedHat(BaseConverter):
         super(RedHat, self).__init__(h, root, guest, db, logger)
         distro = h.inspect_get_distro(root)
         if (h.inspect_get_type(root) != u'linux' or
-                h.inspect_get_distro(root) not in [u'fedora'] + RHEL_BASED):
+            h.inspect_get_distro(root) not in chain([u'fedora'], RHEL_BASED)):
             raise UnsupportedConversion()
 
     def _get_installed(self, name, arch=None):
