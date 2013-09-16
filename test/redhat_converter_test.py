@@ -16,204 +16,138 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-import env
-
 import unittest
-import re
-import lxml.etree as ET
 
 import test_helper
 from images import *
 
-import guestconv.db as db
-import guestconv.converters.redhat as redhat
 import guestconv.converter as converter
-import guestconv.log as log
-
-TestHelper = test_helper.TestHelper
-
-#
-# Base classes
-#
-
-RHEL_5_X86_64_SYSTEMID = os.path.join(DATA_DIR, 'systemid-rhel-5-x86_64')
-
-@unittest.skipUnless(os.path.exists(RHEL52_64_IMG), "image does not exist")
-@unittest.skipUnless(os.path.exists(RHEL_5_X86_64_SYSTEMID),
-                     "systemid file does not exist")
-@unittest.skipIf('GUESTCONV_NONETWORK' in os.environ, 'no network')
-class RHEL52_64_Yum(unittest.TestCase):
-    def setUp(self):
-        self.img = TestHelper.image_for(RHEL52_64_IMG)
-        h = self.img.guestfs_handle()
-        h.launch()
-        h.inspect_os()
-        with converter.RootMounted(h, '/dev/VolGroup00/LogVol00'):
-            h.upload(RHEL_5_X86_64_SYSTEMID, '/etc/sysconfig/rhn/systemid')
-        h.close()
-
-
-@unittest.skipUnless(os.path.exists(FEDORA_17_64_IMG), "image does not exist")
-@unittest.skipIf('GUESTCONV_NONETWORK' in os.environ, 'no network')
-class Fedora17Image(unittest.TestCase):
-    def setUp(self):
-        self.img = TestHelper.image_for(FEDORA_17_64_IMG)
-
-        props = test_helper.get_local_props()
-        if u'fedora_mirror' in props:
-            h = self.img.guestfs_handle()
-            h.launch()
-            h.inspect_os()
-            with converter.RootMounted(h, '/dev/VolGroup00/LogVol00'):
-                h.aug_init(u'/', 0)
-
-                mirror = props[u'fedora_mirror']
-
-                h.aug_rm(u'/files/etc/yum.repos.d/fedora.repo'
-                         u'/fedora/mirrorlist')
-                h.aug_set(u'/files/etc/yum.repos.d/fedora.repo/fedora/baseurl',
-                    u'{}/releases/$releasever/Everything/$basearch/os/'.
-                    format(mirror))
-
-                h.aug_rm(u'/files/etc/yum.repos.d/fedora-updates.repo'
-                         u'/updates/mirrorlist')
-                h.aug_set(u'/files/etc/yum.repos.d/fedora-updates.repo'
-                          u'/updates/baseurl',
-                          u'{}/updates/$releasever/$basearch/'.format(mirror))
-
-                h.aug_save()
-            h.close()
-
 
 #
 # Tests
 #
 
-@unittest.skipUnless(os.path.exists(FEDORA_19_64_IMG), "image does not exist")
-class GrubTest(unittest.TestCase):
-    def setUp(self):
-        self.img = TestHelper.image_for(FEDORA_19_64_IMG)
+# Grub2 tested by Fedora19
+# GrubLegacy tested by RHEL52_64
+#
+# Full XML tested by Fedora19
+#
+# Identity of inspect() tested by Fedora19
 
+def make_grub_tests(root, kernels):
     def testListKernels(self):
-        img = self.img
+        with converter.RootMounted(self.img.converter._h, root):
+            grub_kernels = (self.img.converter._converters[root].
+                                 _bootloader.list_kernels())
 
-        img.converter.inspect()
-        with converter.RootMounted(img.converter._h,
-                                   '/dev/VolGroup00/LogVol00'):
-            kernels = (img.converter._converters['/dev/VolGroup00/LogVol00'].
-                                     _bootloader.list_kernels())
+        self.assertEqual(grub_kernels, kernels)
 
-        self.assertEqual(1, len(kernels))
-        self.assertEqual('/boot/vmlinuz-3.3.4-5.fc17.x86_64', kernels[0])
+    return {'testListKernels': testListKernels}
 
+def make_xml_test(expected):
+    def testXML(self):
+        output = self.img.converter.inspect()
+        self.assertTrue(test_helper.cmpXMLNoOrdering(output, expected),
+                        'XML differs from expected: {}'.format(output))
 
-@unittest.skipUnless(os.path.exists(RHEL46_32_IMG), "image does not exist")
-class RHEL46_32_LocalInstallTest(unittest.TestCase):
-    def setUp(self):
-        self.img = TestHelper.image_for(RHEL46_32_IMG)
+    return {'testXML': testXML}
 
-    def testCheckAvailable(self):
-        """Check a kernel package is available via LocalInstaller"""
-        img = self.img
-        img.converter.inspect()
-        with converter.RootMounted(img.converter._h,
-                                   '/dev/VolGroup00/LogVol00'):
-            c = img.converter
-            installer = redhat.LocalInstaller(
-                c._h, '/dev/VolGroup00/LogVol00',
-                db.DB(['{}/conf/guestconv.db'.format(env.topdir)]),
-                log.get_logger_object(test_helper.logger)
-            )
+def make_inspect_identity_test():
+    def testInspectIdentity(self):
+        xml1 = self.img.converter.inspect()
+        xml2 = self.img.converter.inspect()
+        self.assertIs(xml1, xml2)
 
-            kernel = redhat.Package('kernel',
-                                    version='2.6.9', release='89.EL',
-                                    arch='i686')
-            self.assertTrue(installer.check_available([kernel]))
+    return {'testInspectIdentity': testInspectIdentity}
 
-    def testInspect(self):
-        """Check we've got the expected options"""
-        inspected = ET.fromstring(self.img.converter.inspect())
+Fedora_19_64_Test = test_helper.make_image_test(
+    'Fedora_19_64_Test',
+    FEDORA_19_64_IMG,
+    '/dev/VolGroup00/LogVol00',
+    {
+        u'graphics': [],
+        u'network': [u'e1000', u'rtl8139'],
+        u'block': [u'ide-hd', u'scsi-hd'],
+        u'console': [u'vc', u'serial']
+    },
+    make_grub_tests(
+        '/dev/VolGroup00/LogVol00',
+        ['/boot/vmlinuz-3.9.5-301.fc19.x86_64',
+         '/boot/vmlinuz-0-rescue-d038cede98b74b7192266d40924cca79']
+    ),
+    make_xml_test('''
+<guestconv>
+  <root name="/dev/VolGroup00/LogVol00">
+    <info>
+      <arch>x86_64</arch>
+      <distribution>fedora</distribution>
+      <hostname>localhost.localdomain</hostname>
+      <os>linux</os>
+      <version>
+        <major>19</major>
+        <minor>0</minor>
+      </version>
+    </info>
+    <options>
+      <option description="Hypervisor support" name="hypervisor">
+        <value description="KVM">kvm</value>
+        <value description="Xen Paravirtualised">xenpv</value>
+        <value description="Xen Fully Virtualised">xenfv</value>
+        <value description="VirtualBox">vbox</value>
+        <value description="VMware">vmware</value>
+        <value description="Citrix Fully Virtualised">citrix</value>
+      </option>
+      <option name="graphics" description="Graphics driver">
+        <value description="Cirrus">cirrus-vga</value>
+        <value description="Spice">qxl-vga</value>
+      </option>
+      <option name="network" description="Network driver">
+        <value description="Intel E1000">e1000</value>
+        <value description="Realtek 8139">rtl8139</value>
+        <value description="VirtIO">virtio-net</value>
+      </option>
+      <option name="block" description="Block device driver">
+        <value description="IDE">ide-hd</value>
+        <value description="SCSI">scsi-hd</value>
+        <value description="VirtIO">virtio-blk</value>
+      </option>
+      <option name="console" description="System Console">
+        <value description="Kernel virtual console">vc</value>
+        <value description="Serial console">serial</value>
+        <value description="VirtIO Serial">virtio-serial</value>
+      </option>
+    </options>
+  </root>
+  <boot>
+    <loader disk="sda" type="BIOS" name="grub2-bios"/>
+  </boot>
+</guestconv>
+    '''),
+    make_inspect_identity_test()
+)
 
-        expected = {
-            u'graphics': [],
-            u'network': [u'e1000', u'rtl8139'],
-            u'block': [u'ide-hd', u'scsi-hd'],
-            u'console': [u'vc', u'serial']
-        }
+RHEL_46_32_Test = test_helper.make_image_test(
+    'RHEL46_32_Test',
+    RHEL46_32_IMG,
+    '/dev/VolGroup00/LogVol00',
+    {
+        u'graphics': [],
+        u'network': [u'e1000', u'rtl8139'],
+        u'block': [u'ide-hd', u'scsi-hd'],
+        u'console': [u'vc', u'serial']
+    }
+)
 
-        options = inspected.xpath(u'/guestconv'
-                                  u"/root[@name='/dev/VolGroup00/LogVol00']"
-                                  u'/options')
-        self.assertTrue(len(options) == 1,
-                        u'No options in returned inspection xml')
-        options = options[0]
-
-        for name in expected:
-            values = expected[name]
-
-            option = options.xpath(u"option[@name='{}']".format(name))
-            self.assertTrue(len(option) == 1, u'No {} option'.format(name))
-            option = option[0]
-
-            for value in values:
-                v = option.xpath(u"value[. = '{}']".format(value))
-                self.assertTrue(len(v) == 1,
-                                u'value {} not found for option {}'.
-                                format(value, name))
-
-
-@unittest.skipUnless(os.path.exists(RHEL52_64_IMG), "image does not exist")
-class RHEL52_64_LocalInstallTest(unittest.TestCase):
-    def setUp(self):
-        self.img = TestHelper.image_for(RHEL52_64_IMG)
-
-    def testCheckAvailable(self):
-        img = self.img
-        img.converter.inspect()
-        with converter.RootMounted(img.converter._h,
-                                   '/dev/VolGroup00/LogVol00'):
-            c = img.converter
-            installer = redhat.LocalInstaller(
-                c._h, '/dev/VolGroup00/LogVol00',
-                db.DB(['{}/conf/guestconv.db'.format(env.topdir)]),
-                log.get_logger_object(test_helper.logger)
-            )
-
-            kernel = redhat.Package('kernel',
-                                    version='2.6.18', release='128.el5',
-                                    arch='x86_64')
-            self.assertTrue(installer.check_available([kernel]))
-
-    def testInstallerCheckAvailableFallback(self):
-        img = self.img
-        img.converter.inspect()
-        with converter.RootMounted(img.converter._h,
-                                   '/dev/VolGroup00/LogVol00'):
-            c = img.converter
-            installer = redhat.Installer(
-                c._h, '/dev/VolGroup00/LogVol00',
-                db.DB(['{}/conf/guestconv.db'.format(env.topdir)]),
-                log.get_logger_object(test_helper.logger)
-            )
-
-            kernel = redhat.Package('kernel',
-                                    version='2.6.18', release='128.el5',
-                                    arch='x86_64')
-            self.assertTrue(installer.check_available([kernel]))
-
-class RHEL52_64_YumInstallTest(RHEL52_64_Yum):
-    def testCheckAvailable(self):
-        img = self.img
-        img.converter.inspect()
-        with converter.RootMounted(img.converter._h,
-                                   '/dev/VolGroup00/LogVol00'):
-            c = img.converter
-            installer = redhat.YumInstaller(
-                c._h, '/dev/VolGroup00/LogVol00',
-                log.get_logger_object(test_helper.logger)
-            )
-
-            kernel = redhat.Package('kernel',
-                                    version='2.6.18', release='128.el5',
-                                    arch='x86_64')
-            self.assertTrue(installer.check_available([kernel]))
+RHEL_52_64_Test = test_helper.make_image_test(
+    'RHEL52_64_Test',
+    RHEL52_64_IMG,
+    '/dev/VolGroup00/LogVol00',
+    {
+        u'graphics': [],
+        u'network': [u'e1000', u'rtl8139'],
+        u'block': [u'ide-hd', u'scsi-hd'],
+        u'console': [u'vc', u'serial']
+    },
+    make_grub_tests('/dev/VolGroup00/LogVol00',
+                    ['/boot/vmlinuz-2.6.18-92.el5'])
+)
