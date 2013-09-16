@@ -193,13 +193,15 @@ class Package(object):
         return self._cmp(other) < 0
 
 
-class RPMInstaller(object):
-    def __init__(self, h, root, logger):
-        self._h = h
-        self._root = root
-        self._logger = logger
+class RedHat(BaseConverter):
+    def __init__(self, h, root, guest, db, logger):
+        super(RedHat, self).__init__(h, root, guest, db, logger)
+        distro = h.inspect_get_distro(root)
+        if (h.inspect_get_type(root) != u'linux' or
+                h.inspect_get_distro(root) not in [u'fedora'] + RHEL_BASED):
+            raise UnsupportedConversion()
 
-    def get_installed(self, name, arch=None):
+    def _get_installed(self, name, arch=None):
         if arch is None:
             search = name
         else:
@@ -248,313 +250,18 @@ class RPMInstaller(object):
 
             yield Package(name, epoch, version, release, arch)
 
-
-class Up2dateInstaller(RPMInstaller):
-    @classmethod
-    def supports(klass, h, root):
-        return (h.exists(u'/usr/bin/up2date') and
-                h.exists(u'/etc/sysconfig/rhn/systemid'))
-
-    def __init__(self, h, root, logger):
-        super(Up2dateInstaller, self).__init__(h, root, logger)
-
-
-class YumInstaller(RPMInstaller):
-    class NoPackage(GuestConvException): pass
-
-    INSTALL = 0
-    UPGRADE = 1
-    LIST = 2
-
-    @classmethod
-    def supports(klass, h, root):
-        return h.exists(u'/usr/bin/yum')
-
-    def __init__(self, h, root, logger):
-        super(YumInstaller, self).__init__(h, root, logger)
-
-        # Old versions of yum without --showduplicates won't install or list any
-        # package version other than the latest one
-        self._old_packages = False
-        for line in h.command_lines([u'/usr/bin/yum', u'--help']):
-            if re.search(ur'--showduplicates', line):
-                self._old_packages = True
-                break
-
-        if not self._old_packages:
-            logger.info(_(u'The version of YUM installed in this guest only '
-                          u'supports the installation of the latest version '
-                          u'of a package. Guestconv will not be able to match '
-                          u'version numbers of installed packages during '
-                          u'conversion.'))
-
-    def _yum_cmd(self, mode, packages):
-        cmdline = [u'LANG=C /usr/bin/yum -y']
-        if mode == YumInstaller.INSTALL:
-            cmdline.append(u'install')
-        elif mode == YumInstaller.UPGRADE:
-            cmdline.append(u'upgrade')
-        else:
-            cmdline.append(u'list')
-
-        cmdline.extend([str(pkg) for pkg in packages])
-
-        try:
-            with Network(self._h):
-                output = self._h.sh_lines(" ".join(cmdline))
-        except GuestFSException as ex:
-            self._logger.debug(u'Yum command failed with: {error}'.
-                               format(error=ex.message))
-            raise YumInstaller.NoPackage()
-
-        for line in output:
-            if (mode == YumInstaller.INSTALL and
-                re.match(ur'(?:No package|Nothing to do)', line)):
-                raise YumInstaller.NoPackage()
-            if mode == YumInstaller.UPGRADE and re.match(ur'No Packages'):
-                raise YumInstaller.NoPackage()
-
-        return output
-
-    def check_available(self, pkgs):
-        for i in pkgs:
-            if self._old_packages:
-                self._logger.info(_(u'Checking package {pkg} is available via '
-                                    u'YUM').format(pkg=str(i)))
-                try:
-                    self._yum_cmd(YumInstaller.LIST, [i])
-                    return True
-                except YumInstaller.NoPackage:
-                    return False
-            else:
-                # We just want to lookup name.arch
-                name_arch = Package(i.name, arch=i.arch)
-                self._logger.info(_(u'Checking for latest version of {pkg} '
-                                    u'available via YUM').
-                                  format(pkg=str(name_arch)))
-                output = self._yum_cmd(YumInstaller.LIST, [name_arch])
-
-                for line in output:
-                    # Look for output lines starting with package name
-                    # containing version and source repo
-                    m = re.match(ur'{}\s+(\S+)\s+\S+\s*$'.
-                                 format(re.escape(str(name_arch))), line)
-                    if m is None:
-                        continue
-
-                    try:
-                        found = Package(i.name, evr=m.group(1))
-                    except Package.InvalidEVR:
-                        self._logger.debug(u"{}: doesn't look like evr".
-                                           format(m.group(1)))
-                        continue
-
-                    # Check if this package is new enough
-                    self._logger.debug(u'Package {pkg} is available'.
-                                       format(pkg=str(found)))
-                    if found >= i:
-                        return True
-                return False
-
-
-class LocalInstaller(RPMInstaller):
-    def __init__(self, h, root, db, logger):
-        super(LocalInstaller, self).__init__(h, root, logger)
-        self._db = db
-
-    def _read_local_rpm(self, path):
-        # Read the rpm header from the local file
-        hdr = None
-        try:
-            with open(path, 'rb') as rpm_fd:
-                ts = rpm.TransactionSet()
-                # Don't check package signatures before installation, which will
-                # fail unless we have the signing key for the target OS
-                # installed locally. We implicitly trust these packages.
-                ts.setVSFlags(rpm._RPMVSF_NOSIGNATURES)
-                hdr = ts.hdrFromFdno(rpm_fd)
-
-                return Package(hdr[u'NAME'], hdr[u'EPOCH'], hdr[u'VERSION'],
-                               hdr[u'RELEASE'], hdr[u'ARCH'])
-        except IOError as e:
-            # Display an additional warning to the user for any error other
-            # than file missing
-            if e.errno != errno.ENOENT:
-                self._logger.warn(_(u'Unable to open local file '
-                                    u'{path}: {error}').
-                                    format(path=path, error=e.message))
-        except rpm.error as e:
-            self._logger.warn(_(u'Unable to read rpm package header from '
-                                u'{path}').format(path=path))
-
-        return None
-
-    def _report_missing_app(self, name, arch, missing):
-        h = self._h
-        root = self._root
-
-        os = h.inspect_get_type(root)
-        distro = h.inspect_get_distro(root)
-        version = u'{}.{}'.format(h.inspect_get_major_version(root),
-                                  h.inspect_get_minor_version(root))
-
-        self._logger.warn(_(u"Didn't find {name} app for os={os} "
-                            u'distro={distro} version={version} '
-                            u'arch={arch}').
-                            format(name=name, os=os, distro=distro,
-                                   version=version, arch=arch))
-
-        missing.append(u'app:'+name)
-
-    def _resolve_required_deps(self, names, required, missing, arch=None,
-                               is_subarch=False, visited=[]):
-        h = self._h
-        root = self._root
-
-        if arch is None:
-            arch = h.inspect_get_arch(self._root)
-
-        for name in names:
-            # Don't get stuck in a loop
-            canon_name = name+'.'+arch
-            if canon_name in visited:
-                continue
-            visited.append(canon_name)
-
-            # Lookup local path and dependencies from the db
-            path, deps = self._db.match_app(name, arch, h, root)
-            if path is None:
-                # Ignore failed matches for subarches
-                if is_subarch:
-                    continue
-
-                self._report_missing_app(name, arch, missing)
-                continue
-
-            # If we're checking a subarch, we don't actually want to install the
-            # package. However, we have to upgrade it if there's already an
-            # older version installed, otherwise we'll end up with a version
-            # mis-match between architectures, which normally leads to a
-            # conflict.
-            #
-            # If we aren't checking a subarch, we want to ensure that this
-            # package unless a newer version is already installed.
-            need = True
-
-            # Read NEVRA from the local rpm
-            pkg = self._read_local_rpm(path)
-
-            # Check if we need to install the package
-            if pkg is None:
-                # We don't know if we need the package or not if it's
-                # missing. For the purposes of reporting to the user we
-                # treat it as if we did.
-                missing.append(path)
-            else:
-                found_older = False
-                for installed in self.get_installed(pkg.name, pkg.arch):
-                    # No need to do anything if there's already a newer version
-                    # installed
-                    if pkg <= installed:
-                        need = False
-                        break
-
-                    # For subarch, we're looking for something which needs to be
-                    # upgraded
-                    if is_subarch and pkg > installed:
-                        found_older = True
-                        break
-                if is_subarch and not found_older:
-                    need = False
-
-            if need:
-                required.append(path)
-                self._resolve_required_deps(deps, required, missing, arch,
-                                            False, visited)
-
-                # For x86_64 packages except kernel packages, also check if
-                # there is any i386 or i686 version installed. If there is,
-                # check if it needs to be upgraded
-                kernel_names = [u'kernel', u'kernel-smp', u'kernel-hugemem',
-                                u'kernel-largesmp']
-                if arch == u'x86_64' and name not in kernel_names:
-                    self._resolve_required_deps([name], required, missing,
-                                                u'i386', True, visited)
-
-    def check_available(self, pkgs):
-        missing = []
-        required = []
-        self._resolve_required_deps([pkg.name for pkg in pkgs],
-                                    required, missing)
-
-        if len(missing) > 0:
-            self._logger.warn(
-                _(u'The following files referenced in the configuration are '
-                  u'required, but missing: {list}').
-                format(list=u' '.join(missing)))
-            return False
-
-        return True
-
-
-class Installer(object):
-    NETWORK_INSTALLERS = [YumInstaller]
-
-    def __init__(self, h, root, db, logger):
-        self._h = h
-        self._root = root
-        self._db = db
-        self._logger = logger
-
-        self._installer = None
-
-        for c in Installer.NETWORK_INSTALLERS:
-            if c.supports(h, root):
-                self._installer = c(h, root, logger)
-
-        if self._installer is None:
-            self._installer = LocalInstaller(h, root, db, logger)
-
-    def get_installed(self, name, arch=None):
-        return self._installer.get_installed(name, arch)
-
-    def check_available(self, pkgs):
-        self._logger.debug(u'Checking availability of: {}'.
-                           format(', '.join([str(pkg) for pkg in pkgs])))
-
-        if self._installer.check_available(pkgs):
-            return True
-
-        if self._installer.__class__ in Installer.NETWORK_INSTALLERS:
-            self._logger.debug(u'Falling back to local installer')
-
-            self._installer = LocalInstaller(self._h, self._root,
-                                             self._db, self._logger)
-            return self.check_available(pkgs)
-
-        return False
-
-
-class RedHat(BaseConverter):
-    def __init__(self, h, root, guest, db, logger):
-        super(RedHat, self).__init__(h, root, guest, db, logger)
-        distro = h.inspect_get_distro(root)
-        if (h.inspect_get_type(root) != u'linux' or
-                h.inspect_get_distro(root) not in [u'fedora'] + RHEL_BASED):
-            raise UnsupportedConversion()
-
-    def _check_capability(self, name, installer):
+    def _cap_missing_deps(self, name):
         h = self._h
         root = self._root
         db = self._db
 
         arch = h.inspect_get_arch(root)
-        check = []
+        missing = []
         cap = db.match_capability(name, arch, h, root)
         if cap is None:
             self._logger.debug(u'No {} capability found for this root'.
                                format(name))
-            return False
+            return []
 
         for (pkg, params) in cap.iteritems():
             try:
@@ -567,21 +274,16 @@ class RedHat(BaseConverter):
                 target = Package(pkg)
 
             need = not params[u'ifinstalled']
-            for installed in installer.get_installed(pkg):
+            for installed in self._get_installed(pkg):
                 if installed < target:
                     need = True
                 if installed >= target:
                     need = False
                     continue
             if need:
-                check.append(target)
+                missing.append(target)
 
-        # Success if we've got nothing to check
-        if len(check) == 0:
-            return True
-
-        return installer.check_available(check)
-
+        return missing
 
     def inspect(self):
         h = self._h
@@ -597,8 +299,6 @@ class RedHat(BaseConverter):
                 u'minor': h.inspect_get_minor_version(root)
             }
         }
-
-        self._installer = Installer(h, root, self._db, self._logger)
 
         # Drivers which are always available
         graphics = []
@@ -622,16 +322,31 @@ class RedHat(BaseConverter):
             (u'console', _(u'System Console'), console)
         ]
 
-        if self._check_capability(u'virtio', installer):
+
+        def _missing_deps(name, missing):
+            l = u', '.join([str(i) for i in missing])
+            self._logger.info(_(u'Missing dependencies for {name}: {missing}')
+                              .format(name=name, missing=l))
+
+        virtio_deps = self._cap_missing_deps(u'virtio')
+        if len(virtio_deps) == 0:
             network.append((u'virtio-net', u'VirtIO'))
             block.append((u'virtio-blk', u'VirtIO'))
             console.append((u'virtio-serial', _(u'VirtIO Serial')))
+        else:
+            _missing_deps(u'virtio', virtio_deps)
 
-        if self._check_capability(u'cirrus', self._installer):
+        cirrus_deps = self._cap_missing_deps(u'cirrus')
+        if len(cirrus_deps) == 0:
             graphics.append((u'cirrus-vga', u'Cirrus'))
+        else:
+            _missing_deps(u'cirrus', cirrus_deps)
 
-        if self._check_capability(u'qxl', self._installer):
+        qxl_deps = self._cap_missing_deps(u'qxl')
+        if len(qxl_deps) == 0:
             graphics.append((u'qxl-vga', u'Spice'))
+        else:
+            _missing_deps(u'qxl', qxl_deps)
 
         try:
             self._bootloader = guestconv.converters.grub.detect(
