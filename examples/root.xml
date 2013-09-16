@@ -31,6 +31,11 @@
             </version>
         </info>
         <options>
+            <option name='hypervisor' description='Hypervisor'>
+                <value description='KVM'>kvm</value>
+                <value description='Xen PV'>xenpv</value>
+                <value description='Xen HV'>xenhv</value>
+            </option>
             <option name='graphics' description='Graphics driver'>
                 <value description='Spice'>qxl-vga</value>
                 <value description='Cirrus'>cirrus-vga</value>
@@ -50,8 +55,5 @@
                 <value description='Virtual Console'>none</value>
             </option>
         </options>
-        <agents>
-            <agent name="vmware-tools"/>
-        </agents>
     </root>
 </guestconv>

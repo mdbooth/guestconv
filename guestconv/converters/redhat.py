@@ -39,6 +39,14 @@ RHEL_BASED = (u'rhel', u'centos', u'scientificlinux', u'redhat-based')
 class Package(object):
     class InvalidEVR(GuestConvException): pass
 
+    @classmethod
+    def from_guestfs_app(app):
+        return Package(app[u'app2_name'],
+                       epoch=str(app[u'app2_epoch']),
+                       version=str(app[u'app2_version']),
+                       release=str(app[u'app2_release']),
+                       arch=str(app[u'app2_arch']))
+
     def __init__(self, name, epoch=None, version=None, release=None, arch=None,
                  evr=None):
         if name is None:
@@ -193,6 +201,407 @@ class Package(object):
         return self._cmp(other) < 0
 
 
+def _remove_applications(h, pkgs):
+    try:
+        h.command([u'rpm', u'-e'] + list(pkgs))
+    except GuestFSException as ex:
+        self._logger.warn(_u(u'Failed to remove packages: {pkgs}').
+                          format(u', '.join(pkg_names)))
+        return False
+    return True
+
+
+class Hypervisor(object):
+    NONE = 0
+    INSTALLED = 1
+    AVAILABLE = 2
+
+    class NotAvailable(GuestConvException): pass
+
+    def __init__(self, h, root, logger, apps):
+        self._h = h
+        self._root = root
+        self._logger = logger
+
+        if self._is_installed(apps):
+            self.status = Hypervisor.INSTALLED
+        elif self._is_available():
+            self.status = Hypervisor.AVAILABLE
+        else:
+            self.status = Hypervisor.NONE
+
+    def remove(self):
+        if self.status != Hypervisor.INSTALLED:
+            return
+        else:
+            self._remove()
+
+    def install(self):
+        if self.status == Hypervisor.INSTALLED:
+            return
+        elif self.status != Hypervisor.AVAILABLE:
+            raise Hypervisor.NotAvailable()
+
+        self._install()
+
+    def is_available(self):
+        return self.status in (Hypervisor.INSTALLED, Hypervisor.AVAILABLE)
+
+    # Stubs
+
+    def _is_installed(self, apps): return False
+    def _is_available(self): return True
+    def _remove(self): pass
+    def _install(self): pass
+
+
+class HVKVM(Hypervisor):
+    def __init__(self, h, root, logger, apps):
+        super(HVKVM, self).__init__(h, root, logger, apps)
+        self.description = u'KVM'
+
+
+class HVXenFV(Hypervisor):
+    def __init__(self, h, root, logger, apps):
+        super(HVXenFV, self).__init__(h, root, logger, apps)
+        self.description = _(u'Xen Fully Virtualised')
+
+
+def _xenpv_is_available(h, root):
+    '''Determine whether the guest distro's vanilla kernel supports xen'''
+
+    distro = h.inspect_get_distro(root)
+    version = h.inspect_get_major_version(root)
+
+    # Not 100% sure when Fedora kernels started supporting Xen, but 16
+    # definitely did and hopefully nobody's using anything older than that
+    # any more anyway
+    return ((distro == u'fedora' and version >= 16) or
+
+    # RHEL kernels have supported Xen since RHEL 6
+            (distro in RHEL_BASED and version >= 6))
+
+
+class HVXenPV(Hypervisor):
+    def __init__(self, h, root, logger, apps):
+        super(HVXenPV, self).__init__(h, root, logger, apps)
+        self.description = _(u'Xen Paravirtualised')
+
+    def _is_installed(self, apps):
+        probe = re.compile(ur'kmod-xenpv(?:-.*)?$')
+        self._xen = [str(Package.from_guestfs_app(i)) for i in apps
+                     if probe.match(i[u'app2_name'])]
+
+        return len(self._xen) > 0
+
+    def _is_available(self):
+        return _xenpv_is_available(self._h, self._root)
+
+    def _remove(self):
+        h = self._h
+
+        if len(self._xen) == 0:
+            return
+
+        _remove_applications(h, self._xen)
+
+        # kmod-xenpv modules may have been manually copied to other kernels.
+        # Hunt them down and destroy them
+
+        for xenpv in [i for i in h.find(u'/lib/modules')
+                      if i.endswith(u'/xenpv')]:
+            xenpv = u'/lib/modules' + xenpv
+
+            if not h.is_dir(xenpv):
+                continue
+
+            # Check it's not owned by an installed application
+            try:
+                h.command([u'rpm', u'-qf', xenpv])
+                continue
+            except GuestFSException:
+                pass
+
+            h.rm_rf(xenpv)
+
+        # rc.local may contain an insmod or modprobe of the xen-vbd driver
+        if not h.is_file(u'/etc/rc.local'):
+            return
+
+        rc_local = h.read_lines(u'/etc/rc.local')
+        probe = re.compile(ur'\b(?:insmod|modprobe)\b.*\bxen-vbd\b')
+        rc_local_len = 0
+        for i in range(len(rc_local)):
+            if probe.search(rc_local[i]):
+                rc_local[i] = u'# ' + rc_local[i]
+            rc_local_len += len(rc_local) + 1
+        h.write_file(u'/etc/rc.local', '\n'.join(rc_local) + '\n', rc_local_len)
+
+
+class HVVBox(Hypervisor):
+    def __init__(self, h, root, logger, apps):
+        super(HVVBox, self).__init__(h, root, logger, apps)
+        self.description = u'VirtualBox'
+
+    def _is_installed(self, apps):
+        h = self._h
+
+        probe = re.compile(ur'virtualbox-guest-additions(?:-.*)$')
+        self._vbox_apps = [str(Package.from_guestfs_app(i)) for i in apps
+                           if probe.match(i[u'app2_name'])]
+
+        self._vbox_uninstall = None
+        config = u'/var/lib/VBoxGuestAdditions/config'
+        if h.is_file(config):
+            prefix = u'INSTALL_DIR'
+            for line in h.read_lines(config):
+                if line.startswith(prefix):
+                    install_dir = line[len(prefix)::]
+                    uninstall = install_dir + u'/uninstall.sh'
+                    if h.is_file(uninstall):
+                        self._vbox_uninstall = uninstall
+                    else:
+                        self._logger.warn(_(u'VirtualBox config at {path} says '
+                                            u'INSTALL_DIR={installdir}, but '
+                                            u"{uninstall} doesn't exist").
+                                          format(path=config,
+                                                 installdir=install_dir,
+                                                 uninstall=uninstall))
+                    break
+
+        return len(self._vbox_apps) > 0 or self._vbox_uninstall is not None
+
+    def _remove(self):
+        h = self._h
+
+        if len(self._vbox_apps) > 0:
+            _remove_applications(h, self._vbox_apps)
+
+        if self._vbox_uninstall is not None:
+            try:
+                h.command([self._vbox_uninstall])
+                h.aug_load()
+            except GuestFSException as ex:
+                self._logger.warn(_(u'VirtualBox Guest Additions '
+                                    u'were detected, but '
+                                    u'uninstallation failed. The '
+                                    u'error message was: {error}').
+                                  format(error=ex.message))
+
+
+class HVVMware(Hypervisor):
+    def __init__(self, h, root, logger, apps):
+        super(HVVMware, self).__init__(h, root, logger, apps)
+        self.description = u'VMware'
+
+    def _is_installed(self, apps):
+        h = self._h
+
+        self._vmw_repos = h.aug_match(u'/files/etc/yum.repos.d/*/*'
+                ur"[baseurl =~ regexp('https?://([^/]+\.)?vmware\.com/.*')]")
+
+        self._vmw_remove = []
+        self._vmw_libs = []
+
+        for app in apps:
+            name = app[u'app2_name']
+            if name.startswith(u'vmware-tools-libraries-'):
+                self._vmw_libs.append(app)
+            elif (name.startswith(u'vmware-tools-') or name == 'VMwareTools' or
+                  name.startswith(u'kmod-vmware-tools-') or
+                  name == u'VMwareTools'):
+                self._vmw_remove.append(str(Package.from_guestfs_app(app)))
+
+        return (len(self._vmw_repos) > 0 or
+                len(self._vmw_remove) > 0 or
+                len(self._vmw_libs) > 0)
+
+    def _remove(self):
+        h = self._h
+
+        for repo in self._vmw_repos:
+            h.aug_set(repo + u'/enabled', 0)
+            try:
+                h.aug_save()
+            except GuestFSException as ex:
+                augeas_error(h, ex)
+
+        remove = False
+
+        if len(self._vmw_libs) > 0:
+            # It's important that we did aug_save() above, or resolvedep might
+            # return the same vmware packages we're trying to get rid of
+            libs = self._remove_libs()
+        else:
+            libs = []
+
+        if len(self._vmw_remove) > 0 or len(libs) > 0:
+            _remove_applications(h, chain(self._vmw_remove, libs))
+
+        # VMwareTools may have been installed from tarball, in which case the
+        # above won't detect it. Look for the uninstall tool, and run it if
+        # it's present.
+        #
+        # Note that it's important we do this early in the conversion process,
+        # as this uninstallation script naively overwrites configuration files
+        # with versions it cached prior to installation.
+        vmwaretools = u'/usr/bin/vmware-uninstall-tools.pl'
+        if h.is_file(vmwaretools):
+            try:
+                h.command([vmwaretools])
+            except GuestfsException as ex:
+                self._logger.warn(_(u'VMware Tools was detected, but '
+                                    u'uninstallation failed: {error}').
+                                  format(error = ex.message))
+            h.aug_load()
+
+    def _remove_libs(self):
+        h = self._h
+
+        replaced = []
+
+        with Network(h):
+            for lib in self._vmw_libs:
+                nevra = str(Package.from_guestfs_app(lib))
+                name = lib[u'app2_name']
+
+                # Get the list of provides for the library package.
+                try:
+                    provides = set([i.strip() for i in
+                                    h.command_lines([u'rpm', u'-q',
+                                                     u'--provides', nevra])
+
+                                    # The packages explicitly provide
+                                    # themselves.  Filter this out
+                                    if name not in i])
+                except GuestfsException as ex:
+                    self._logger.warn(_(u'Error getting rpm provides for '
+                                        u'{package}: {error}').
+                                      format(package = nevra,
+                                             error = ex.message))
+                    continue
+
+                # Install the dependencies with yum. We use yum explicitly
+                # here, as up2date wouldn't work anyway and local install is
+                # impractical due to the large number of required
+                # dependencies out of our control.
+                try:
+                    alts = set([i.strip() for i in
+                                h.command_lines(list(chain([u'yum', u'-q',
+                                                            u'resolvedep'],
+                                                           provides)))])
+                except GuestfsException as ex:
+                    self._logger.warn(
+                        _(u'Error resolving depencies for '
+                          u'{packages}: {error}').
+                        format(packages = u', '.join(list(provides)),
+                               error = ex.message))
+                    continue
+
+                if len(alts) > 0:
+                    try:
+                        h.command(u'yum', u'install', u'-y', list(alts))
+                    except GuestfsException as ex:
+                        self._logger.warn(
+                            _(u'Error installing replacement packages for '
+                              u'{package} ({replacements}): {error}').
+                            format(package = nevra,
+                                   replacements = u', '.join(list(alts)),
+                                   error = ex.message))
+                        continue
+
+                replaced.append(nevra)
+
+        return replaced
+
+
+class HVCitrix(Hypervisor):
+    def __init__(self, h, root, logger, apps):
+        super(HVCitrix, self).__init__(h, root, logger, apps)
+        self.description = _(u'Citrix Fully Virtualised')
+
+    def _is_installed(self, apps):
+        h = self._h
+
+        probe = re.compile(ur'xe-guest-utilities(?:-.*)$')
+        self._citrix_utils = [str(Package.from_guestfs_app(i))
+                              for i in apps
+                              if probe.match(i[u'app2_name'])]
+
+        return len(self._citrix_utils) > 0
+
+
+class HVCitrixPV(Hypervisor):
+    def __init__(self, h, root, logger, apps):
+        super(HVCitrixPV, self).__init__(h, root, logger, apps)
+        self.description = _(u'Citrix Paravirtualised')
+
+    def _is_installed(self, apps):
+        h = self._h
+
+        probe = re.compile(ur'xe-guest-utilities(?:-.*)$')
+        self._citrix_utils = [str(Package.from_guestfs_app(i))
+                              for i in apps
+                              if probe.match(i[u'app2_name'])]
+
+        return len(self._citrix_utils) > 0
+
+    def _is_available(self):
+        return _xenpv_is_available(self._h, self._root)
+
+    def _remove(self):
+        h = self._h
+
+        _remove_applications(self._citrix_utils)
+
+        # Installing these guest utilities automatically unconfigures ttys in
+        # /etc/inittab if the system uses it. We need to put them back.
+
+        # The entries in question are named 1-6, and will normally be active in
+        # runlevels 2-5. They will be gettys. We could be extremely prescriptive
+        # here, but allow for a reasonable amount of variation just in case.
+        inittab = re.compile(ur'([1-6]):([2-5]+):respawn:(.*)')
+
+        updated = 0
+        for path in h.aug_match(u'/files/etc/inittab/#comment'):
+            comment = h.aug_get(path)
+
+            m = inittab.match(comment)
+            if m is None:
+                continue
+
+            name = m.group(1)
+            runlevels = m.group(2)
+            process = m.group(3)
+
+            if u'getty' not in process:
+                continue
+
+            # Create a new entry immediately after the comment
+            h.aug_insert(path, name, 0)
+            for field, value in [(u'runlevels', runlevels),
+                                 (u'action', u'respawn'),
+                                 (u'process', process)]:
+                h.aug_set(u'/files/etc/inittab/{name}/{field}'.
+                          format(name = name, field = field), value)
+
+            # Create a variable to point to the comment node so we can delete it
+            # later. If we deleted it here it would invalidate subsequent
+            # comment paths returned by aug_match.
+            h.aug_defvar(u'delete{}'.format(updated), path)
+
+            updated += 1
+
+        # Delete all replaced comments
+        for i in range(updated):
+            h.aug_rm(ur'$delete{i}'.format(i=i))
+
+        try:
+            h.aug_save()
+        except GuestfsException as ex:
+            augeas_error(h, ex)
+
+
 class RedHat(BaseConverter):
     def __init__(self, h, root, guest, db, logger):
         super(RedHat, self).__init__(h, root, guest, db, logger)
@@ -301,6 +710,7 @@ class RedHat(BaseConverter):
         }
 
         # Drivers which are always available
+        hypervisor = []
         graphics = []
         network = [
             (u'e1000', u'Intel E1000'),
@@ -316,12 +726,25 @@ class RedHat(BaseConverter):
         ]
 
         options = [
+            (u'hypervisor', _(u'Hypervisor support'), hypervisor),
             (u'graphics', _(u'Graphics driver'), graphics),
             (u'network', _(u'Network driver'), network),
             (u'block', _(u'Block device driver'), block),
             (u'console', _(u'System Console'), console)
         ]
 
+        apps = h.inspect_list_applications2(root)
+        self._hypervisors = {}
+        for name, klass in [(u'kvm', HVKVM),
+                            (u'xenpv', HVXenPV),
+                            (u'xenfv', HVXenFV),
+                            (u'vbox', HVVBox),
+                            (u'vmware', HVVMware),
+                            (u'citrix', HVCitrix)]:
+            hv = klass(h, root, self._logger, apps)
+            if hv.is_available():
+                self._hypervisors[name] = klass
+                hypervisor.append((name, hv.description))
 
         def _missing_deps(name, missing):
             l = u', '.join([str(i) for i in missing])
