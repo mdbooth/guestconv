@@ -20,6 +20,7 @@
 """Detect and manipulate configurations of various versions of grub"""
 
 import re
+from itertools import chain, ifilter
 
 from guestconv.exception import *
 from guestconv.converters.exception import *
@@ -132,40 +133,43 @@ class Grub(GrubBase):
         grub_conf = self._grub_conf
         grub_fs = self._grub_fs
 
-
-        # Get a list of all kernels
-        paths = h.aug_match(u'/files{}/title/kernel'.format(grub_conf))
-
         def _default_first():
-            '''Try to move the default kernel to the front of the list. This
-            will fail if there is no default, or if the default specifies a
-            non-existent kernel'''
+            '''Get a list of kernels with the default kernel, if any, first'''
+
+            # Get a list of all kernels
+            paths = h.aug_match(u'/files{}/title/kernel'.format(grub_conf))
+
+            # Try to move the default kernel to the front of the list. This will
+            # fail if there is no default, or if the default specifies a
+            # non-existent kernel
 
             try:
                 default_str = h.aug_get(u'/files{}/default'.format(grub_conf))
             except GuestFSException:
-                return # We don't care if there is no default
+                return paths # We don't care if there is no default
 
             try:
-                default_int = int(default_str) - 1
+                default_int = int(default_str)
             except ValueError:
                 self._logger.info(_(u'{path} contains invalid default: '
                                     u'{default').
                                     format(path=grub_conf, default=default_str))
-                return
+                return paths
+
 
             # Nothing to do if the default is already first in the list
             if default_int == 0:
-                return
+                return paths
 
             # Grub indices are zero-based, augeas is 1-based
             default_path = (u'/files{}/title[{}]/kernel'.
-                            format(grub_conf, default_int - 1))
+                            format(grub_conf, default_int + 1))
 
             # Put the default at the beginning of the list
-            paths = filter(lambda x: x != default_path, paths)
-            paths.insert(0, default_path)
-        _default_first()
+            return chain([default_path],
+                         ifilter(lambda x: x != default_path, paths))
+
+        paths = _default_first()
 
         # Fetch the value of all detected kernels, and sanity check them
         kernels = []
