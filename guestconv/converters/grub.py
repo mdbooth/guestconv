@@ -110,6 +110,40 @@ class GrubBase(object):
             _(u"grubby didn't return an initrd for kernel %(kernel)s") %
             {u'kernel': path})
 
+    def _iter_kernels(self, default, all_kernels):
+        '''Return all kernels with the default kernel first, duplicates and
+        non-existent kernels removed, and all grub paths expanded to system
+        paths'''
+
+        kernels = all_kernels
+
+        if default is not None:
+            # Put the default at the beginning of the kernel list
+            kernels = chain([default],
+                            ifilter(lambda x: x != default, kernels))
+
+        # Prepend the grub filesystem to paths if necessary
+        grub_fs = self._grub_fs
+        if grub_fs != '':
+            kernels = imap(lambda x: grub_fs + x, kernels)
+
+        # Check that the returned kernel paths exist, and remove duplicates
+        seen = set()
+        def _check_and_uniq(path):
+          if path in seen:
+              return False
+
+          seen.add(path)
+
+          if not self._h.is_file_opts(path, followsymlinks=True):
+              self._logger.warn(_(u"grub refers to {kernel}, which doesn't "
+                                  "exist").format(kernel=path))
+              return False
+
+          return True
+
+        return ifilter(_check_and_uniq, kernels)
+
 
 class Grub(GrubBase):
     '''Methods for inspecting and manipulating grub legacy'''
@@ -123,7 +157,6 @@ class Grub(GrubBase):
 
         h = self._h
         grub_conf = self._cfg
-        grub_fs = self._grub_fs
 
         def _get_default():
             '''Return the grub path of the default kernel, or None if there is
@@ -153,39 +186,14 @@ class Grub(GrubBase):
                                     u'which doesn\'t exist').
                                   format(index=default_int))
                 return None
-        default = _get_default()
 
-        # Get a list of all kernels
-        kernels = h.aug_match(u'/files{}/title/kernel'.format(grub_conf))
+        # Fetch the grub paths of all kernels in grub config
+        all_kernels = imap(
+            lambda x: h.aug_get(x),
+            h.aug_match(u'/files{}/title/kernel'.format(grub_conf))
+        )
 
-        # Fetch the grub paths of all detected kernels
-        kernels = imap(lambda x: h.aug_get(x), kernels)
-
-        if default is not None:
-            # Put the default at the beginning of the kernel list
-            kernels = chain([default],
-                            ifilter(lambda x: x != default, kernels))
-
-        # Prepend the grub filesystem to paths if necessary
-        if grub_fs != '':
-            kernels = imap(lambda x: grub_fs + x, kernels)
-
-        # Check that the returned kernel paths exist, and remove duplicates
-        seen = set()
-        def _check_and_uniq(path):
-          if path in seen:
-              return False
-
-          seen.add(path)
-
-          if not h.is_file_opts(path, followsymlinks=True):
-              self._logger.warn(_(u"grub refers to {kernel}, which doesn't "
-                                  "exist").format(kernel=path))
-              return False
-
-          return True
-
-        return ifilter(_check_and_uniq, kernels)
+        return self._iter_kernels(_get_default(), all_kernels)
 
 
 class GrubBIOS(Grub):
@@ -248,6 +256,47 @@ class Grub2(GrubBase):
 
         h = self._h
 
+        def _list_menuentries():
+            '''Return title and kernel for each menuentry in grub config, in
+            order'''
+
+            lines = iter(h.read_lines(self._cfg))
+            for line in lines:
+                # Is this a menu entry
+                m = re.match(u"\s*menuentry\s+(?:'([^']*)')?", line)
+                if m is None:
+                    continue
+
+                # Try to find a title
+                title = m.group(1) # May be None
+
+                # Try to find an open curly
+                while re.search(u'{\s*$', line) is None:
+                    try:
+                        line = lines.next()
+                    except StopIteration:
+                        self._logger.warn(_(u'Unexpected EOF in {path}: '
+                                            u'menuentry with no \'{\''))
+                        return
+
+                # line is now the line containing the close curly.
+                # This for loop will continue to iterate starting at the line
+                # following the close curly
+                kernel = None
+                for line in lines:
+                    m = re.match(u'\s*linux\s+(\S+)\s', line)
+                    if m is None:
+                        if re.search(u'}\s*$', line):
+                            break    
+                        else:
+                            continue
+
+                    kernel = m.group(1)
+
+                # We're now at either a close curly or EOF
+                # title and kernel could both be None
+                yield (title, kernel)
+
         # Scan the grub config looking for how the default entry is determined
         # We do this heuristically, because the way it really works is utterly
         # insane.
@@ -301,92 +350,8 @@ class Grub2(GrubBase):
         # correct, but will handle all of the above cases. If any user is
         # inclined to do anything different, they're presumably already used to
         # everything being broken.
-
-        default = None
-        for line in h.read_lines(self._cfg):
-            m = re.match(u'\s*set\s+default\s*=\s*"(.*)"', line)
-            if m is None:
-                continue
-
-            value = m.group(1)
-            if value == u'${next_entry}':
-                continue
-
-            default = value
-
-        SAVED = u'${saved_entry}'
-        if default == SAVED:
-            def _get_saved():
-                GRUBENV = u'/boot/grub2/grubenv'
-                if not h.is_file_opts(GRUBENV, followsymlinks=True):
-                    self._logger.warn(_(u'Grub 2 configuration lists default '
-                                        u'boot option as \'{value}\', but '
-                                        u'{path} does not exist')
-                                        .format(value=SAVED, path=GRUBENV))
-                    return None
-
-                for line in h.read_lines(GRUBENV):
-                    line.strip()
-                    m = re.match(u'saved_entry=(.*)', line)
-                    if m is not None:
-                        return m.group(1)
-
-                self._logger.warn(_(u'Grub 2 configuration lists default boot '
-                                    u'option as \'{value}\', but {path} does '
-                                    u'not contain a \'{name}\' entry')
-                                    .format(value=SAVED, path=GRUBENV,
-                                            name=u'saved_entry'))
-                return None
-
-            default = _get_saved()
-
-        def _list_menuentries():
-            lines = iter(h.read_lines(self._cfg))
-            for line in lines:
-                # Is this a menu entry
-                m = re.match(u"\s*menuentry\s+(?:'([^']*)')?", line)
-                if m is None:
-                    continue
-
-                # Try to find a title
-                title = m.group(1) # May be None
-
-                # Try to find an open curly
-                while re.search(u'{\s*$', line) is None:
-                    try:
-                        line = lines.next()
-                    except StopIteration:
-                        self._logger.warn(_(u'Unexpected EOF in {path}: '
-                                            u'menuentry with no \'{\''))
-                        return
-
-                # line is now the line containing the close curly.
-                # This for loop will continue to iterate starting at the line
-                # following the close curly
-                kernel = None
-                for line in lines:
-                    m = re.match(u'\s*linux\s+(\S+)\s', line)
-                    if m is None:
-                        if re.search(u'}\s*$', line):
-                            break    
-                        else:
-                            continue
-
-                    kernel = m.group(1)
-
-                # We're now at either a close curly or EOF
-                # title and kernel could both be None
-                yield (title, kernel)
-
-        # Base list is all kernels from grub config
-        kernels = imap(lambda (title, kernel): kernel, _list_menuentries())
-
-        # Filter out empty entries
-        kernels = ifilter(lambda x: x is not None, kernels)
-
-        # Prepend the default, if there is one
-        if default is not None:
-            def _resolve_default():
+        def _get_default():
+            def _resolve_default(default):
                 # Is default an index or a menuentry title?
                 try:
                     default_int = int(default)
@@ -411,22 +376,54 @@ class Grub2(GrubBase):
 
                 return None
 
-            default = _resolve_default()
+            # Find the last default in grub config
+            default = None
+            for line in h.read_lines(self._cfg):
+                m = re.match(u'\s*set\s+default\s*=\s*"(.*)"', line)
+                if m is None:
+                    continue
 
-            # This could still be None, if the default points to an entry with
-            # no kernel
-            if default is not None:
-                # Filter out the default from the main list of kernels
-                kernels = ifilter(lambda x: x != default, kernels)
+                value = m.group(1)
+                # Ignore ${next_entry}, as it's only a temporary boot config
+                if value == u'${next_entry}':
+                    continue
 
-                # Prepend the default kernel to the returned list
-                kernels = chain([default], kernels)
+                default = value
 
-        # Prepend _grub_fs to kernel paths if required
-        if self._grub_fs != '':
-            kernels = imap(lambda x: self._grub_fs + x, kernels)
+            # If the default is the magic ${saved_entry}, look up the actual
+            # value from grubenv
+            SAVED = u'${saved_entry}'
+            if default == SAVED:
+                GRUBENV = u'/boot/grub2/grubenv'
+                if not h.is_file_opts(GRUBENV, followsymlinks=True):
+                    self._logger.warn(_(u'Grub 2 configuration lists default '
+                                        u'boot option as \'{value}\', but '
+                                        u'{path} does not exist')
+                                      .format(value=SAVED, path=GRUBENV))
+                    return None
 
-        return kernels
+                for line in h.read_lines(GRUBENV):
+                    line.strip()
+                    m = re.match(u'saved_entry=(.*)', line)
+                    if m is not None:
+                        return _resolve_default(m.group(1))
+
+                self._logger.warn(_(u'Grub 2 configuration lists default boot '
+                                    u'option as \'{value}\', but {path} does '
+                                    u'not contain a \'{name}\' entry')
+                                  .format(value=SAVED, path=GRUBENV,
+                                          name=u'saved_entry'))
+                return None
+
+            return _resolve_default(default)
+
+        # Fetch all kernels from grub config
+        all_kernels = imap(lambda (title, kernel): kernel, _list_menuentries())
+
+        # Filter out empty entries
+        all_kernels = ifilter(lambda x: x is not None, all_kernels)
+
+        return self._iter_kernels(_get_default(), all_kernels)
 
 
 class Grub2BIOS(Grub2):
