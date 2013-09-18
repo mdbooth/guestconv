@@ -38,7 +38,7 @@ def make_grub_tests(root, kernels):
     def testListKernels(self):
         with converter.RootMounted(self.img.converter._h, root):
             grub_kernels = list(self.img.converter._converters[root].
-                                    _bootloader.list_kernels())
+                                    _bootloader.iter_kernels())
 
         self.assertEqual(grub_kernels, kernels)
 

@@ -117,28 +117,22 @@ class Grub(GrubBase):
     def __init__(self, h, root, converter, logger, cfg):
         super(Grub, self).__init__(h, root, converter, logger, cfg)
 
-    def list_kernels(self):
-        '''List all kernels from grub.conf in the order that grub would try
+    def iter_kernels(self):
+        '''Return all kernels from grub.conf in the order that grub would try
         them'''
 
         h = self._h
         grub_conf = self._cfg
         grub_fs = self._grub_fs
 
-        def _default_first():
-            '''Get a list of kernels with the default kernel, if any, first'''
-
-            # Get a list of all kernels
-            paths = h.aug_match(u'/files{}/title/kernel'.format(grub_conf))
-
-            # Try to move the default kernel to the front of the list. This will
-            # fail if there is no default, or if the default specifies a
-            # non-existent kernel
+        def _get_default():
+            '''Return the grub path of the default kernel, or None if there is
+            no valid default kernel'''
 
             try:
                 default_str = h.aug_get(u'/files{}/default'.format(grub_conf))
             except GuestFSException:
-                return paths # We don't care if there is no default
+                return None # We don't care if there is no default
 
             try:
                 default_int = int(default_str)
@@ -146,40 +140,52 @@ class Grub(GrubBase):
                 self._logger.info(_(u'{path} contains invalid default: '
                                     u'{default').
                                     format(path=grub_conf, default=default_str))
-                return paths
-
-
-            # Nothing to do if the default is already first in the list
-            if default_int == 0:
-                return paths
+                return None
 
             # Grub indices are zero-based, augeas is 1-based
-            default_path = (u'/files{}/title[{}]/kernel'.
+            default_aug = (u'/files{}/title[{}]/kernel'.
                             format(grub_conf, default_int + 1))
 
-            # Put the default at the beginning of the list
-            return chain([default_path],
-                         ifilter(lambda x: x != default_path, paths))
+            try:
+                return h.aug_get(default_aug)
+            except GuestFSException:
+                self._logger.info(_(u'grub refers to default kernel {index}, '
+                                    u'which doesn\'t exist').
+                                  format(index=default_int))
+                return None
+        default = _get_default()
 
-        paths = _default_first()
+        # Get a list of all kernels
+        kernels = h.aug_match(u'/files{}/title/kernel'.format(grub_conf))
 
-        # Fetch the value of all detected kernels, and sanity check them
-        kernels = []
-        checked = {}
-        for path in paths:
-            if path in checked:
-                continue
-            checked[path] = True
+        # Fetch the grub paths of all detected kernels
+        kernels = imap(lambda x: h.aug_get(x), kernels)
 
-            kernel = grub_fs + h.aug_get(path)
+        if default is not None:
+            # Put the default at the beginning of the kernel list
+            kernels = chain([default],
+                            ifilter(lambda x: x != default, kernels))
 
-            if h.is_file_opts(kernel, followsymlinks=True):
-                kernels.append(kernel)
-            else:
-                self._logger.warn(_(u"grub refers to {kernel}, which doesn't "
-                                    "exist").format(kernel=kernel))
+        # Prepend the grub filesystem to paths if necessary
+        if grub_fs != '':
+            kernels = imap(lambda x: grub_fs + x, kernels)
 
-        return kernels
+        # Check that the returned kernel paths exist, and remove duplicates
+        seen = set()
+        def _check_and_uniq(path):
+          if path in seen:
+              return False
+
+          seen.add(path)
+
+          if not h.is_file_opts(path, followsymlinks=True):
+              self._logger.warn(_(u"grub refers to {kernel}, which doesn't "
+                                  "exist").format(kernel=path))
+              return False
+
+          return True
+
+        return ifilter(_check_and_uniq, kernels)
 
 
 class GrubBIOS(Grub):
@@ -236,7 +242,10 @@ class GrubEFI(Grub):
 
 
 class Grub2(GrubBase):
-    def list_kernels(self):
+    def iter_kernels(self):
+        '''Return all kernels from grub.conf in the order that grub would try
+        them'''
+
         h = self._h
 
         # Scan the grub config looking for how the default entry is determined
