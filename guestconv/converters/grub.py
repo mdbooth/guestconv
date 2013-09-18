@@ -60,8 +60,9 @@ def detect(h, root, converter, logger):
             return GrubBIOS(h, root, converter, logger, cfg)
 
     # Look for grub2 config
-    if h.is_file_opts(u'/boot/grub2/grub.cfg', followsymlinks=True):
-        return Grub2BIOS(h, root, converter, logger)
+    GRUB2_CFG = u'/boot/grub2/grub.cfg'
+    if h.is_file_opts(GRUB2_CFG, followsymlinks=True):
+        return Grub2BIOS(h, root, converter, logger, GRUB2_CFG)
 
     raise BootLoaderNotFound()
 
@@ -71,12 +72,23 @@ class GrubBase(object):
     and grub2
     '''
 
-    def __init__(self, h, root, converter, logger):
+    def __init__(self, h, root, converter, logger, cfg):
         self._h = h
         self._root = root
         self._converter = converter
         self._logger = logger
         self._disk = None
+        self._cfg = cfg
+
+        # Find the path which needs to be prepended to paths in the grub config
+        # to make them absolute
+        mounts = h.inspect_get_mountpoints(root)
+        if u'/boot' in mounts:
+            self._grub_fs = u'/boot'
+            self._grub_device = mounts[u'/boot']
+        else:
+            self._grub_fs = u''
+            self._grub_device = mounts[u'/']
 
     def installed_on(self, disk):
         if disk == self._disk:
@@ -103,34 +115,14 @@ class Grub(GrubBase):
     '''Methods for inspecting and manipulating grub legacy'''
 
     def __init__(self, h, root, converter, logger, cfg):
-        super(Grub, self).__init__(h, root, converter, logger)
-
-        self._grub_conf = cfg
-
-        # Find the path which needs to be prepended to paths in grub.conf to
-        # make them absolute
-        # Look for the most specific mount point discovered
-        self._grub_fs = ''
-        mounts = h.inspect_get_mountpoints(root)
-        for path in [u'/boot/grub', u'/boot']:
-            if path in mounts:
-                self._grub_fs = path
-                self._grub_device = mounts[path]
-                break
-
-        if self._grub_fs == '':
-            self._grub_device = mounts[u'/']
-
-        # We used to check that the augeas grub lens included our specific
-        # grub.conf location, but augeas has done this by default for some time
-        # now.
+        super(Grub, self).__init__(h, root, converter, logger, cfg)
 
     def list_kernels(self):
         '''List all kernels from grub.conf in the order that grub would try
         them'''
 
         h = self._h
-        grub_conf = self._grub_conf
+        grub_conf = self._cfg
         grub_fs = self._grub_fs
 
         def _default_first():
@@ -231,7 +223,7 @@ class GrubEFI(Grub):
         grub_conf = u'/boot/grub/grub.conf'
 
         h = self._h
-        h.cp(self._grub_conf, grub_conf)
+        h.cp(self._cfg, grub_conf)
         h.ln_sf(grub_conf, u'/etc/grub.conf')
 
         # Reload to push up grub.conf in its new location
@@ -266,11 +258,8 @@ class Grub2(GrubBase):
 
 
 class Grub2BIOS(Grub2):
-    def __init__(self, h, root, converter, logger):
-        if not h.exists(u'/boot/grub2/grub.cfg'):
-            raise BootLoaderNotFound()
-
-        super(Grub2BIOS, self).__init__(h, root, converter, logger)
+    def __init__(self, h, root, converter, logger, cfg):
+        super(Grub2BIOS, self).__init__(h, root, converter, logger, cfg)
 
         # Find the grub device
         mounts = self._h.inspect_get_mountpoints(self._root)
@@ -290,8 +279,8 @@ class Grub2BIOS(Grub2):
 
 
 class Grub2EFI(Grub2):
-    def __init__(self, h, root, converter, logger):
-        super(Grub2EFI, self).__init__(h, root, converter, logger)
+    def __init__(self, h, root, converter, logger, cfg):
+        super(Grub2EFI, self).__init__(h, root, converter, logger, cfg)
 
         # Check all devices for an EFI boot partition
         for device in h.list_devices():
@@ -366,7 +355,10 @@ class Grub2EFI(Grub2):
         except GuestfsException as ex:
             augeas_error(h, ex)
 
-        h.command([u'grub2-install', self._disk])
-        h.command([u'grub2-mkconfig', u'-o', u'/boot/grub2/grub.cfg'])
+        GRUB2_BIOS_CFG = u'/boot/grub2/grub.cfg'
 
-        return Grub2BIOS(h, self._root, self._converter, self._logger)
+        h.command([u'grub2-install', self._disk])
+        h.command([u'grub2-mkconfig', u'-o', GRUB2_BIOS_CFG])
+
+        return Grub2BIOS(h, self._root, self._converter, self._logger,
+                         GRUB2_BIOS_CFG)
