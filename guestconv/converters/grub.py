@@ -56,11 +56,11 @@ def detect(h, root, converter, logger):
 
     # Look for grub legacy config
     for cfg in [u'/boot/grub/grub.conf', u'/boot/grub/menu.lst']:
-        if h.exists(cfg):
+        if h.is_file_opts(cfg, followsymlinks=True):
             return GrubBIOS(h, root, converter, logger, cfg)
 
     # Look for grub2 config
-    if h.exists(u'/boot/grub2/grub.cfg'):
+    if h.is_file_opts(u'/boot/grub2/grub.cfg', followsymlinks=True):
         return Grub2BIOS(h, root, converter, logger)
 
     raise BootLoaderNotFound()
@@ -181,7 +181,7 @@ class Grub(GrubBase):
 
             kernel = grub_fs + h.aug_get(path)
 
-            if h.exists(kernel):
+            if h.is_file_opts(kernel, followsymlinks=True):
                 kernels.append(kernel)
             else:
                 self._logger.warn(_(u"grub refers to {kernel}, which doesn't "
