@@ -218,7 +218,10 @@ class Hypervisor(object):
 
     class NotAvailable(GuestConvException): pass
 
-    def __init__(self, h, root, logger, apps):
+    def __init__(self, key, description, h, root, logger, apps):
+        self.key = key
+        self.description = description
+
         self._h = h
         self._root = root
         self._logger = logger
@@ -257,14 +260,13 @@ class Hypervisor(object):
 
 class HVKVM(Hypervisor):
     def __init__(self, h, root, logger, apps):
-        super(HVKVM, self).__init__(h, root, logger, apps)
-        self.description = u'KVM'
+        super(HVKVM, self).__init__(u'kvm', u'KVM', h, root, logger, apps)
 
 
 class HVXenFV(Hypervisor):
     def __init__(self, h, root, logger, apps):
-        super(HVXenFV, self).__init__(h, root, logger, apps)
-        self.description = _(u'Xen Fully Virtualised')
+        super(HVXenFV, self).__init__(u'xenfv', _(u'Xen Fully Virtualised'),
+                                      h, root, logger, apps)
 
 
 def _xenpv_is_available(h, root):
@@ -284,8 +286,8 @@ def _xenpv_is_available(h, root):
 
 class HVXenPV(Hypervisor):
     def __init__(self, h, root, logger, apps):
-        super(HVXenPV, self).__init__(h, root, logger, apps)
-        self.description = _(u'Xen Paravirtualised')
+        super(HVXenPV, self).__init__(u'xenpv', _(u'Xen Paravirtualised'),
+                                      h, root, logger, apps)
 
     def _is_installed(self, apps):
         probe = re.compile(ur'kmod-xenpv(?:-.*)?$')
@@ -340,8 +342,8 @@ class HVXenPV(Hypervisor):
 
 class HVVBox(Hypervisor):
     def __init__(self, h, root, logger, apps):
-        super(HVVBox, self).__init__(h, root, logger, apps)
-        self.description = u'VirtualBox'
+        super(HVVBox, self).__init__(u'vbox', u'VirtualBox',
+                                     h, root, logger, apps)
 
     def _is_installed(self, apps):
         h = self._h
@@ -391,8 +393,8 @@ class HVVBox(Hypervisor):
 
 class HVVMware(Hypervisor):
     def __init__(self, h, root, logger, apps):
-        super(HVVMware, self).__init__(h, root, logger, apps)
-        self.description = u'VMware'
+        super(HVVMware, self).__init__(u'vmware', u'VMware',
+                                       h, root, logger, apps)
 
     def _is_installed(self, apps):
         h = self._h
@@ -515,10 +517,11 @@ class HVVMware(Hypervisor):
         return replaced
 
 
-class HVCitrix(Hypervisor):
+class HVCitrixFV(Hypervisor):
     def __init__(self, h, root, logger, apps):
-        super(HVCitrix, self).__init__(h, root, logger, apps)
-        self.description = _(u'Citrix Fully Virtualised')
+        super(HVCitrixFV, self).__init__(u'citrixfv',
+                                         _(u'Citrix Fully Virtualised'),
+                                         h, root, logger, apps)
 
     def _is_installed(self, apps):
         h = self._h
@@ -533,8 +536,9 @@ class HVCitrix(Hypervisor):
 
 class HVCitrixPV(Hypervisor):
     def __init__(self, h, root, logger, apps):
-        super(HVCitrixPV, self).__init__(h, root, logger, apps)
-        self.description = _(u'Citrix Paravirtualised')
+        super(HVCitrixPV, self).__init__(u'citrixpv',
+                                         _(u'Citrix Paravirtualised'),
+                                         h, root, logger, apps)
 
     def _is_installed(self, apps):
         h = self._h
@@ -735,16 +739,15 @@ class RedHat(BaseConverter):
 
         apps = h.inspect_list_applications2(root)
         self._hypervisors = {}
-        for name, klass in [(u'kvm', HVKVM),
-                            (u'xenpv', HVXenPV),
-                            (u'xenfv', HVXenFV),
-                            (u'vbox', HVVBox),
-                            (u'vmware', HVVMware),
-                            (u'citrix', HVCitrix)]:
+        for klass in [HVKVM,
+                      HVXenPV, HVXenFV,
+                      HVVBox,
+                      HVVMware,
+                      HVCitrixFV, HVCitrixPV]:
             hv = klass(h, root, self._logger, apps)
             if hv.is_available():
-                self._hypervisors[name] = klass
-                hypervisor.append((name, hv.description))
+                self._hypervisors[hv.key] = klass
+                hypervisor.append((hv.key, hv.description))
 
         def _missing_deps(name, missing):
             l = u', '.join([str(i) for i in missing])

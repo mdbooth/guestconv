@@ -95,7 +95,8 @@ Fedora_19_64_Test = test_helper.make_image_test(
         <value description="Xen Fully Virtualised">xenfv</value>
         <value description="VirtualBox">vbox</value>
         <value description="VMware">vmware</value>
-        <value description="Citrix Fully Virtualised">citrix</value>
+        <value description="Citrix Fully Virtualised">citrixfv</value>
+        <value description="Citrix Paravirtualised">citrixpv</value>
       </option>
       <option name="graphics" description="Graphics driver">
         <value description="Cirrus">cirrus-vga</value>
