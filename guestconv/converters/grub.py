@@ -72,7 +72,9 @@ class GrubBase(object):
     and grub2
     '''
 
-    def __init__(self, h, root, converter, logger, cfg):
+    def __init__(self, name, h, root, converter, logger, cfg):
+        self.name = name
+
         self._h = h
         self._root = root
         self._converter = converter
@@ -148,9 +150,6 @@ class GrubBase(object):
 class Grub(GrubBase):
     '''Methods for inspecting and manipulating grub legacy'''
 
-    def __init__(self, h, root, converter, logger, cfg):
-        super(Grub, self).__init__(h, root, converter, logger, cfg)
-
     def iter_kernels(self):
         '''Return all kernels from grub.conf in the order that grub would try
         them'''
@@ -198,32 +197,34 @@ class Grub(GrubBase):
 
 class GrubBIOS(Grub):
     def __init__(self, h, root, converter, logger, cfg):
-        super(GrubBIOS, self).__init__(h, root, converter, logger, cfg)
+        super(GrubBIOS, self).__init__(u'grub-bios',
+                                       h, root, converter, logger, cfg)
 
     def inspect(self):
         m = re.match(u'^/dev/([a-z]*)[0-9]*$', self._grub_device)
         disk = m.group(1)
         props = {
             u'type': u'BIOS',
-            u'name': u'grub-bios'
+            u'name': self.name
         }
 
         return disk, props
 
 
 class GrubEFI(Grub):
-    def __init__(self, h, root, converter, logger, device, cfg):
-        super(GrubEFI, self).__init__(h, root, converter, logger, cfg)
+    def __init__(self, name, h, root, converter, logger, device, cfg):
+        super(GrubEFI, self).__init__(u'grub-efi',
+                                      h, root, converter, logger, cfg)
 
         self._disk = device
 
     def inspect(self):
         props = {
             u'type': u'EFI',
-            u'name': u'grub-efi',
+            u'name': self.name,
             u'replacement': {
-                u'name': u'grub-bios',
-                u'type': u'BIOS'
+                u'type': u'BIOS',
+                u'name': u'grub-bios'
             }
         }
 
@@ -428,7 +429,8 @@ class Grub2(GrubBase):
 
 class Grub2BIOS(Grub2):
     def __init__(self, h, root, converter, logger, cfg):
-        super(Grub2BIOS, self).__init__(h, root, converter, logger, cfg)
+        super(Grub2BIOS, self).__init__(u'grub2-bios',
+                                        h, root, converter, logger, cfg)
 
         # Find the grub device
         mounts = self._h.inspect_get_mountpoints(self._root)
@@ -441,7 +443,7 @@ class Grub2BIOS(Grub2):
     def inspect(self):
         props = {
             u'type': u'BIOS',
-            u'name': u'grub2-bios'
+            u'name': self.name
         }
 
         return self._disk, props
@@ -449,7 +451,8 @@ class Grub2BIOS(Grub2):
 
 class Grub2EFI(Grub2):
     def __init__(self, h, root, converter, logger, cfg):
-        super(Grub2EFI, self).__init__(h, root, converter, logger, cfg)
+        super(Grub2EFI, self).__init__(u'grub2-efi',
+                                       h, root, converter, logger, cfg)
 
         # Check all devices for an EFI boot partition
         for device in h.list_devices():
@@ -486,10 +489,10 @@ class Grub2EFI(Grub2):
     def inspect(self):
         props = {
             u'type': u'EFI',
-            u'name': u'grub2-efi',
+            u'name': self.name,
             u'replacement': {
-                u'name': u'grub2-bios',
-                u'type': u'BIOS'
+                u'type': u'BIOS',
+                u'name': u'grub2-bios'
             }
         }
 
