@@ -702,6 +702,66 @@ class RedHat(BaseConverter):
         h = self._h
         root = self._root
 
+        # Initialise supported drivers
+        options = [
+            (u'hypervisor', _(u'Hypervisor support'), []),
+            (u'graphics', _(u'Graphics driver'), []),
+            (u'network', _(u'Network driver'), [
+                (u'e1000', u'Intel E1000'),
+                (u'rtl8139', u'Realtek 8139')
+            ]),
+            (u'block', _(u'Block device driver'), [
+                (u'ide-hd', u'IDE'),
+                (u'scsi-hd', u'SCSI')
+            ]),
+            (u'console', _(u'System Console'), [
+                (u'vc', _(u'Kernel virtual console')),
+                (u'serial', _(u'Serial console'))
+            ])
+        ]
+
+        drivers = {}
+        for name, desc, values in options:
+            drivers[name] = values
+
+        def _missing_deps(name, missing):
+            '''Utility function for reporting missing dependencies'''
+            l = u', '.join([str(i) for i in missing])
+            self._logger.info(_(u'Missing dependencies for {name}: {missing}')
+                              .format(name=name, missing=l))
+
+        # Detect supported hypervisors
+        self._hypervisors = {}
+        apps = h.inspect_list_applications2(root)
+        for klass in [HVKVM,
+                      HVXenPV, HVXenFV,
+                      HVVBox,
+                      HVVMware,
+                      HVCitrixFV, HVCitrixPV]:
+            hv = klass(h, root, self._logger, apps)
+            if hv.is_available():
+                self._hypervisors[hv.key] = klass
+                drivers[u'hypervisor'].append((hv.key, hv.description))
+
+        # Detect supported graphics hardware
+        for driver, desc in [(u'qxl-vga', u'Spice'),
+                             (u'cirrus-vga', u'Cirrus')]:
+            deps = self._cap_missing_deps(driver)
+            if len(deps) == 0:
+                drivers[u'graphics'].append((driver, desc))
+            else:
+                _missing_deps(driver, deps)
+
+        # Detect VirtIO
+        virtio_deps = self._cap_missing_deps(u'virtio')
+        if len(virtio_deps) == 0:
+            drivers[u'network'].append((u'virtio-net', u'VirtIO'))
+            drivers[u'block'].append((u'virtio-blk', u'VirtIO'))
+            drivers[u'console'].append((u'virtio-serial', _(u'VirtIO Serial')))
+        else:
+            _missing_deps(u'virtio', virtio_deps)
+
+        # Info section of inspection
         info = {
             u'hostname': h.inspect_get_hostname(root),
             u'os': h.inspect_get_type(root),
@@ -712,67 +772,6 @@ class RedHat(BaseConverter):
                 u'minor': h.inspect_get_minor_version(root)
             }
         }
-
-        # Drivers which are always available
-        hypervisor = []
-        graphics = []
-        network = [
-            (u'e1000', u'Intel E1000'),
-            (u'rtl8139', u'Realtek 8139')
-        ]
-        block = [
-            (u'ide-hd', u'IDE'),
-            (u'scsi-hd', u'SCSI')
-        ]
-        console = [
-            (u'vc', _(u'Kernel virtual console')),
-            (u'serial', _(u'Serial console'))
-        ]
-
-        options = [
-            (u'hypervisor', _(u'Hypervisor support'), hypervisor),
-            (u'graphics', _(u'Graphics driver'), graphics),
-            (u'network', _(u'Network driver'), network),
-            (u'block', _(u'Block device driver'), block),
-            (u'console', _(u'System Console'), console)
-        ]
-
-        apps = h.inspect_list_applications2(root)
-        self._hypervisors = {}
-        for klass in [HVKVM,
-                      HVXenPV, HVXenFV,
-                      HVVBox,
-                      HVVMware,
-                      HVCitrixFV, HVCitrixPV]:
-            hv = klass(h, root, self._logger, apps)
-            if hv.is_available():
-                self._hypervisors[hv.key] = klass
-                hypervisor.append((hv.key, hv.description))
-
-        def _missing_deps(name, missing):
-            l = u', '.join([str(i) for i in missing])
-            self._logger.info(_(u'Missing dependencies for {name}: {missing}')
-                              .format(name=name, missing=l))
-
-        virtio_deps = self._cap_missing_deps(u'virtio')
-        if len(virtio_deps) == 0:
-            network.append((u'virtio-net', u'VirtIO'))
-            block.append((u'virtio-blk', u'VirtIO'))
-            console.append((u'virtio-serial', _(u'VirtIO Serial')))
-        else:
-            _missing_deps(u'virtio', virtio_deps)
-
-        cirrus_deps = self._cap_missing_deps(u'cirrus')
-        if len(cirrus_deps) == 0:
-            graphics.append((u'cirrus-vga', u'Cirrus'))
-        else:
-            _missing_deps(u'cirrus', cirrus_deps)
-
-        qxl_deps = self._cap_missing_deps(u'qxl')
-        if len(qxl_deps) == 0:
-            graphics.append((u'qxl-vga', u'Spice'))
-        else:
-            _missing_deps(u'qxl', qxl_deps)
 
         try:
             self._bootloader = guestconv.converters.grub.detect(

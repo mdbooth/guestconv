@@ -24,23 +24,23 @@ the modifications or additions to /etc/guestconv.conf instead. Configuration in
   </capability>
 
   <!-- RHEL 5+ packages the cirrus driver in xorg-x11-drv-cirrus -->
-  <capability os='linux' distro='rhel' major='6' name='cirrus'>
+  <capability os='linux' distro='rhel' major='6' name='cirrus-vga'>
     <dep name='xorg-x11-drv-cirrus'/>
   </capability>
 
-  <capability os='linux' distro='rhel' major='5' name='cirrus'>
+  <capability os='linux' distro='rhel' major='5' name='cirrus-vga'>
     <dep name='xorg-x11-drv-cirrus'/>
   </capability>
 
   <!-- RHEL 4 bundles the cirrus driver with the main X package -->
-  <capability os='linux' distro='rhel' major='4' name='cirrus'/>
+  <capability os='linux' distro='rhel' major='4' name='cirrus-vga'/>
 
   <!-- RHEL 5+ packages the qxl driver in xorg-x11-drv-qxl -->
-  <capability os='linux' distro='rhel' major='6' name='qxl'>
+  <capability os='linux' distro='rhel' major='6' name='qxl-vga'>
     <dep name='xorg-x11-drv-qxl'/>
   </capability>
 
-  <capability os='linux' distro='rhel' major='5' name='qxl'>
+  <capability os='linux' distro='rhel' major='5' name='qxl-vga'>
     <dep name='xorg-x11-drv-qxl'/>
   </capability>
 
@@ -50,11 +50,11 @@ the modifications or additions to /etc/guestconv.conf instead. Configuration in
   <!-- All current versions of Fedora support VirtIO -->
   <capability os='linux' distro='fedora' name='virtio'/>
 
-  <capability os='linux' distro='fedora' name='cirrus'>
+  <capability os='linux' distro='fedora' name='cirrus-vga'>
     <dep name='xorg-x11-drv-cirrus'/>
   </capability>
 
-  <capability os='linux' distro='fedora' name='qxl'>
+  <capability os='linux' distro='fedora' name='qxl-vga'>
     <dep name='xorg-x11-drv-qxl'/>
   </capability>
 
@@ -70,17 +70,17 @@ the modifications or additions to /etc/guestconv.conf instead. Configuration in
   <capability os='linux' distro='centos' major='4' name='virtio'>
     <dep name='kernel' minversion='2.6.9-89.EL'/>
   </capability>
-  <capability os='linux' distro='centos' major='6' name='cirrus'>
+  <capability os='linux' distro='centos' major='6' name='cirrus-vga'>
     <dep name='xorg-x11-drv-cirrus'/>
   </capability>
-  <capability os='linux' distro='centos' major='5' name='cirrus'>
+  <capability os='linux' distro='centos' major='5' name='cirrus-vga'>
     <dep name='xorg-x11-drv-cirrus'/>
   </capability>
-  <capability os='linux' distro='centos' major='4' name='cirrus'/>
-  <capability os='linux' distro='centos' major='6' name='qxl'>
+  <capability os='linux' distro='centos' major='4' name='cirrus-vga'/>
+  <capability os='linux' distro='centos' major='6' name='qxl-vga'>
     <dep name='xorg-x11-drv-qxl'/>
   </capability>
-  <capability os='linux' distro='centos' major='5' name='qxl'>
+  <capability os='linux' distro='centos' major='5' name='qxl-vga'>
     <dep name='xorg-x11-drv-qxl'/>
   </capability>
 
@@ -95,17 +95,17 @@ the modifications or additions to /etc/guestconv.conf instead. Configuration in
   <capability os='linux' distro='scientificlinux' major='4' name='virtio'>
     <dep name='kernel' minversion='2.6.9-89.EL'/>
   </capability>
-  <capability os='linux' distro='scientificlinux' major='6' name='cirrus'>
+  <capability os='linux' distro='scientificlinux' major='6' name='cirrus-vga'>
     <dep name='xorg-x11-drv-cirrus'/>
   </capability>
-  <capability os='linux' distro='scientificlinux' major='5' name='cirrus'>
+  <capability os='linux' distro='scientificlinux' major='5' name='cirrus-vga'>
     <dep name='xorg-x11-drv-cirrus'/>
   </capability>
-  <capability os='linux' distro='scientificlinux' major='4' name='cirrus'/>
-  <capability os='linux' distro='scientificlinux' major='6' name='qxl'>
+  <capability os='linux' distro='scientificlinux' major='4' name='cirrus-vga'/>
+  <capability os='linux' distro='scientificlinux' major='6' name='qxl-vga'>
     <dep name='xorg-x11-drv-qxl'/>
   </capability>
-  <capability os='linux' distro='scientificlinux' major='5' name='qxl'>
+  <capability os='linux' distro='scientificlinux' major='5' name='qxl-vga'>
     <dep name='xorg-x11-drv-qxl'/>
   </capability>
 
