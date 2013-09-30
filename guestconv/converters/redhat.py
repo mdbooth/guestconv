@@ -782,6 +782,11 @@ class RedHat(BaseConverter):
 
         bl_disk, bl_props = self._bootloader.inspect()
 
+        # Persist detected driver support for later sanity checking
+        self._drivers = {}
+        for driver in drivers:
+            self._drivers[driver] = set([i[0] for i in drivers[driver]])
+
         return {bl_disk: bl_props}, info, options
 
 
