@@ -50,9 +50,9 @@ def detect(h, root, converter, logger):
             for cfg in h.glob_expand(u'{}/EFI/*/grub.*'.format(mp)):
                 m = re.search(u'grub\.(conf|cfg)$')
                 if m.group(1) == u'conf':
-                    return GrubEFI(h, root, converter, logger, device, cfg)
+                    return GrubEFI(device, h, root, converter, logger, cfg)
                 else:
-                    return Grub2EFI(h, root, converter, logger, device, cfg)
+                    return Grub2EFI(device, h, root, converter, logger, cfg)
 
     # Look for grub legacy config
     for cfg in [u'/boot/grub/grub.conf', u'/boot/grub/menu.lst']:
@@ -67,39 +67,48 @@ def detect(h, root, converter, logger):
     raise BootLoaderNotFound()
 
 
+def _find_boot(h, root):
+    mounts = h.inspect_get_mountpoints(root)
+
+    def _get_device(mp):
+        part = mounts[mp]
+        m = re.match(u'/dev/([a-z]*)[0-9]*$', part)
+        if m is None:
+            raise Exception(u'Unexpected guestfs partition {}'.format(part))
+        return m.group(1)
+
+    BOOT = u'/boot'
+    if BOOT in mounts:
+        return (_get_device(BOOT), BOOT)
+    else:
+        return (_get_device(u'/'), u'')
+
+
 class GrubBase(object):
     '''Functions supported by grubby, and therefore common between grub legacy
     and grub2
     '''
 
-    def __init__(self, name, h, root, converter, logger, cfg):
+    def __init__(self, name, device, fs_prefix,
+                 h, root, converter, logger, cfg):
         self.name = name
+        self.device = device
 
+        self._fs_prefix = fs_prefix
         self._h = h
         self._root = root
         self._converter = converter
         self._logger = logger
-        self._disk = None
         self._cfg = cfg
 
-        # Find the path which needs to be prepended to paths in the grub config
-        # to make them absolute
-        mounts = h.inspect_get_mountpoints(root)
-        if u'/boot' in mounts:
-            self._grub_fs = u'/boot'
-            self._grub_device = mounts[u'/boot']
-        else:
-            self._grub_fs = u''
-            self._grub_device = mounts[u'/']
-
-    def installed_on(self, disk):
-        if disk == self._disk:
+    def installed_on(self, device):
+        if disk == self.device:
             self._logger.debug(u'Bootloader {} can convert {}'.
-                               format(self.__class__, disk))
+                               format(self.__class__, device))
             return True
 
         self._logger.debug(u"Bootloader {} installed on {} can't convert {}".
-                           format(self.__class__, self._disk, disk))
+                           format(self.__class__, self.device, device))
         return False
 
     def get_initrd(self, path):
@@ -125,9 +134,8 @@ class GrubBase(object):
                             ifilter(lambda x: x != default, kernels))
 
         # Prepend the grub filesystem to paths if necessary
-        grub_fs = self._grub_fs
-        if grub_fs != '':
-            kernels = imap(lambda x: grub_fs + x, kernels)
+        if self._fs_prefix != '':
+            kernels = imap(lambda x: self._fs_prefix + x, kernels)
 
         # Check that the returned kernel paths exist, and remove duplicates
         seen = set()
@@ -197,29 +205,28 @@ class Grub(GrubBase):
 
 class GrubBIOS(Grub):
     def __init__(self, h, root, converter, logger, cfg):
-        super(GrubBIOS, self).__init__(u'grub-bios',
+
+        # Find the path which needs to be prepended to paths in the grub config
+        # to make them absolute
+        (device, prefix) = _find_boot(h, root)
+
+        super(GrubBIOS, self).__init__(u'grub-bios', device, prefix,
                                        h, root, converter, logger, cfg)
 
     def inspect(self):
-        m = re.match(u'^/dev/([a-z]*)[0-9]*$', self._grub_device)
-        disk = m.group(1)
-        props = {
+        return {
             u'type': u'BIOS',
             u'name': self.name
         }
 
-        return disk, props
-
 
 class GrubEFI(Grub):
-    def __init__(self, name, h, root, converter, logger, device, cfg):
-        super(GrubEFI, self).__init__(u'grub-efi',
+    def __init__(self, device, h, root, converter, logger, cfg):
+        super(GrubEFI, self).__init__(u'grub-efi', device,
                                       h, root, converter, logger, cfg)
 
-        self._disk = device
-
     def inspect(self):
-        props = {
+        return {
             u'type': u'EFI',
             u'name': self.name,
             u'replacement': {
@@ -227,8 +234,6 @@ class GrubEFI(Grub):
                 u'name': u'grub-bios'
             }
         }
-
-        return self._disk, props
 
     def convert(self, target):
         if target != 'grub-bios':
@@ -244,7 +249,7 @@ class GrubEFI(Grub):
         # Reload to push up grub.conf in its new location
         h.aug_load()
 
-        h.command([u'grub-install', self._grub_device])
+        h.command([u'grub-install', self.device])
 
         return GrubBIOS(self._h, self._root, self._converter, self._logger,
                         grub_conf)
@@ -429,45 +434,38 @@ class Grub2(GrubBase):
 
 class Grub2BIOS(Grub2):
     def __init__(self, h, root, converter, logger, cfg):
-        super(Grub2BIOS, self).__init__(u'grub2-bios',
+        # Find the grub device
+        device = None
+
+        (device, prefix) = _find_boot(h, root)
+
+        super(Grub2BIOS, self).__init__(u'grub2-bios', device, prefix,
                                         h, root, converter, logger, cfg)
 
-        # Find the grub device
-        mounts = self._h.inspect_get_mountpoints(self._root)
-        for path in [u'/boot/grub2', u'/boot', u'/']:
-            if path in mounts:
-                m = re.match(u'^/dev/([a-z]*)[0-9]*$', mounts[path])
-                self._disk = m.group(1)
-                break
-
     def inspect(self):
-        props = {
+        return {
             u'type': u'BIOS',
             u'name': self.name
         }
 
-        return self._disk, props
-
 
 class Grub2EFI(Grub2):
     def __init__(self, h, root, converter, logger, cfg):
-        super(Grub2EFI, self).__init__(u'grub2-efi',
-                                       h, root, converter, logger, cfg)
+        (bootfs_device, prefix) = _find_boot(h, root)
 
         # Check all devices for an EFI boot partition
-        for device in h.list_devices():
-            try:
-                guid = h.part_get_gpt_type(device, 1)
-                if guid == u'C12A7328-F81F-11D2-BA4B-00A0C93EC93B':
-                    self._disk = device
-                    break
-            except GuestFSException:
-                # Not EFI if partition isn't GPT
-                next
+        def _find_boot_device():
+            for i in h.list_devices():
+                try:
+                    guid = h.part_get_gpt_type(i, 1)
+                    if guid == u'C12A7328-F81F-11D2-BA4B-00A0C93EC93B':
+                        return i
+                except GuestFSException:
+                    # Not EFI if partition isn't GPT
+                    next
 
-        # Check we found an EFI boot partition
-        if self._disk is None:
             raise BootLoaderNotFound()
+        device = _find_boot_device()
 
         # Look for the EFI boot partition in mountpoints
         try:
@@ -476,18 +474,11 @@ class Grub2EFI(Grub2):
             logger.debug(u'Detected EFI bootloader with no mountpoint')
             raise BootLoaderNotFound()
 
-        self._cfg = None
-        for path in h.find(mp):
-            if re.search(u'/grub\.cfg$', path):
-                self._cfg = mp + path
-                break
-
-        if self._cfg is None:
-            logger.debug(u'Detected mounted EFI bootloader but no grub.cfg')
-            raise BootLoaderNotFound()
+        super(Grub2EFI, self).__init__(u'grub2-efi', device, prefix,
+                                       h, root, converter, logger, cfg)
 
     def inspect(self):
-        props = {
+        return {
             u'type': u'EFI',
             u'name': self.name,
             u'replacement': {
@@ -495,8 +486,6 @@ class Grub2EFI(Grub2):
                 u'name': u'grub2-bios'
             }
         }
-
-        return self._disk, props
 
     def convert(self, target):
         if target != 'grub2-bios':
@@ -515,7 +504,7 @@ class Grub2EFI(Grub2):
             raise ConversionError(_(u'Failed to install bios version of grub2'))
 
         # Relabel the EFI boot partition as a BIOS boot partition
-        h.part_set_gpt_type(self._disk, 1,
+        h.part_set_gpt_type(self.device, 1,
                             u'21686148-6449-6E6F-744E-656564454649')
 
         # Delete the fstab entry for the EFI boot partition
@@ -529,7 +518,7 @@ class Grub2EFI(Grub2):
 
         GRUB2_BIOS_CFG = u'/boot/grub2/grub.cfg'
 
-        h.command([u'grub2-install', self._disk])
+        h.command([u'grub2-install', self.device])
         h.command([u'grub2-mkconfig', u'-o', GRUB2_BIOS_CFG])
 
         return Grub2BIOS(h, self._root, self._converter, self._logger,

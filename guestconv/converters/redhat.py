@@ -780,14 +780,13 @@ class RedHat(BaseConverter):
             raise ConversionError(_(u"Didn't detect a bootloader for root "
                                     u'{root}').format(root=self._root))
 
-        bl_disk, bl_props = self._bootloader.inspect()
-
         # Persist detected driver support for later sanity checking
         self._drivers = {}
         for driver in drivers:
             self._drivers[driver] = set([i[0] for i in drivers[driver]])
 
-        return {bl_disk: bl_props}, info, options
+        return ({self._bootloader.device: self._bootloader.inspect()},
+                info, options)
 
 
         raise ConversionError(_(u"Didn't detect a bootloader for root %(root)s") %
