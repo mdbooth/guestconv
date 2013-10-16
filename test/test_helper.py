@@ -32,8 +32,11 @@ import sys
 import tempfile
 import unittest
 
+from urlparse import urlparse
+
 import lxml.etree as ET
 
+import ksbuilder
 import guestconv
 import guestconv.converters.redhat as redhat
 
@@ -50,6 +53,7 @@ SSH_BIN       = '/usr/bin/ssh'
 LIBVIRT_LEASES_FILE = '/var/lib/libvirt/dnsmasq/default.leases'
 
 TDL_DIR = os.path.join(env.topdir, u'test', u'data', u'tdls')
+KS_DIR = os.path.join(env.topdir, u'test', u'data', u'ks')
 
 jinja = jinja2.Environment(
     loader=jinja2.FileSystemLoader(env.topdir)
@@ -339,17 +343,57 @@ def read_props(path, defaults={}):
 
     return props
 
+def build_ks(name, props):
+    props_path = os.path.join(KS_DIR, name + u'.props')
+    props_rendered = _render_template(props_path, props)
+
+    ks_props = read_props(props_rendered.name)
+
+    # Filter out and ignore unknown properties
+    args = dict((k, v) for k, v in ks_props.items()
+                if k in [u'ks', u'iso', u'url',
+                         u'image_size', u'os_variant', u'loader'])
+
+    # Ensure manadatory properties are present
+    if u'ks' not in args:
+        raise RuntimeError(u'{path} does not define ks'
+                           .format(path=props_path))
+
+    # Can't have both iso and url
+    if u'iso' in args and u'url' in args:
+        raise RuntimeError(u'{path} defines both iso and url'
+                           .format(path=props_path))
+
+    # ks is relative to KS_DIR, and is a template
+    ks = _render_template(os.path.join(KS_DIR, args[u'ks']), props)
+    args[u'ks'] = ks.name
+
+    if u'iso' in args:
+        # Fetch iso from iso_repository
+        iso = urlparse(args[u'iso'])
+        if iso.scheme != u'file':
+            raise RuntimeError(u'Only support installation from local iso')
+        args[u'iso'] = iso.path
+
+        ksbuilder.build_iso(name, **args)
+    elif u'url' in args:
+        ksbuilder.build_url(name, **args)
+    else:
+        raise RuntimeError(u'{path} must specify either iso or url'
+                           .format(path=props_path))
 
 if __name__ == '__main__':
     tdls = map(lambda x: os.path.basename(x).replace('.tdl', ''),
                glob.glob(os.path.join(TDL_DIR, '*.tdl')))
     tpls = map(lambda x: os.path.basename(x).replace('.tdl.tpl', ''),
                glob.glob(os.path.join(TDL_DIR, '*.tdl.tpl')))
+    ks = map(lambda x: os.path.basename(x).replace('.props', ''),
+             glob.glob(os.path.join(KS_DIR, '*.props')))
 
     cmd = sys.argv[1]
 
     if cmd == 'list':
-        for i in itertools.chain(tdls, tpls):
+        for i in itertools.chain(tdls, tpls, ks):
             print i
 
     elif cmd == 'build':
@@ -377,6 +421,9 @@ if __name__ == '__main__':
 
         elif tgt in tpls:
             build_tpl(tgt, props)
+
+        elif tgt in ks:
+            build_ks(tgt, props)
 
         else:
             print "Target {} doesn't exist".format(tgt)
