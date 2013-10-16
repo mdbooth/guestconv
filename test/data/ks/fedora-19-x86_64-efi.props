@@ -1,0 +1,5 @@
+ks=fedora-19-x86_64-efi.ks
+url={{fedora_mirror}}/releases/19/Fedora/x86_64/os/
+os_variant=fedora19
+image_size=4
+loader={{efi_loader}}

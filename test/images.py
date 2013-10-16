@@ -21,7 +21,9 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
 IMG_DIR = os.path.join(DATA_DIR, 'images')
 
 FEDORA_19_64_IMG = os.path.join(IMG_DIR, 'fedora-19-x86_64.img')
+FEDORA_19_64_EFI_IMG = os.path.join(IMG_DIR, u'fedora-19-x86_64-efi.img')
 UBUNTU_1210_64_IMG = os.path.join(IMG_DIR, 'ubuntu-12.10-x86_64.img')
 
 RHEL46_32_IMG = os.path.join(IMG_DIR, 'rhel-4.6-i386.img')
 RHEL52_64_IMG = os.path.join(IMG_DIR, 'rhel-5.2-x86_64.img')
+RHEL60_64_EFI_IMG = os.path.join(IMG_DIR, u'rhel-6.0-x86_64-efi.img')

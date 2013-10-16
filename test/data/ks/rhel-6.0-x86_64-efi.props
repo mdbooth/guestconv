@@ -1,0 +1,5 @@
+ks=rhel-6.0-x86_64-efi.ks
+iso={{iso_repository}}/rhel-server-6.0-x86_64-dvd.iso
+os_variant=rhel6
+image_size=3
+loader={{efi_loader}}
