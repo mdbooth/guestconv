@@ -49,11 +49,10 @@ QEMU_IMG_BIN  = '/usr/bin/qemu-img'
 SSH_BIN       = '/usr/bin/ssh'
 LIBVIRT_LEASES_FILE = '/var/lib/libvirt/dnsmasq/default.leases'
 
-TDL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                       'data', 'tdls')
+TDL_DIR = os.path.join(env.topdir, u'test', u'data', u'tdls')
 
 jinja = jinja2.Environment(
-    loader=jinja2.FileSystemLoader('{}/test/data/tdls'.format(env.topdir))
+    loader=jinja2.FileSystemLoader(env.topdir)
 )
 
 def run_cmd(cmd):
@@ -168,33 +167,28 @@ def make_image_test(name, img, expected_root=None, expected_options=None,
                                '{img} does not exist'.format(img=img))(
         type(name, (unittest.TestCase,), methods))
 
+def _render_template(path, params):
+    jtpl = jinja.get_template(os.path.relpath(path, env.topdir))
+
+    # Create a temporary file containing the rendered template
+    rendered = tempfile.NamedTemporaryFile(prefix='gc.')
+    rendered.write(jtpl.render(**params))
+
+    # Ensure we've flushed the contents
+    rendered.flush()
+    os.fsync(rendered)
+
+    return rendered
 
 class TestTDLTemplate:
-    defaults = {
-        'fedora_mirror': 'http://download.fedoraproject.org/pub/fedora/linux',
-        'ubuntu_mirror': 'http://mirrors.us.kernel.org/ubuntu-releases',
-        'iso_repository': 'file://'
-    }
-
     def __init__(self, template):
-        self.template = os.path.basename(template)
-        self.name = self.template.replace('.tdl.tpl', '')
+        self.template = template
+        self.name = os.path.basename(template).replace('.tdl.tpl', '')
         pass
 
     # render a tdl from this template
     def render(self, params={}):
-        print "rendering template {}".format(self.template)
-        jtpl = jinja.get_template(self.template)
-
-        # Merge passed-in params with defaults, with passed-in taking precedence
-        render_args = dict(itertools.chain(TestTDLTemplate.defaults.items(),
-                                           params.items()))
-
-        # Create a temporary file containing the rendered tdl
-        # Note bufsize=0 required to ensure data is written before oz tries to
-        # read it
-        tdlf = tempfile.NamedTemporaryFile(prefix='guestconv-test.', bufsize=0)
-        tdlf.write(jtpl.render(**render_args))
+        tdlf = _render_template(self.template, params)
 
         # Store a reference to the temporary file in the returned TestTDL to
         # ensure they are garbage collected together
@@ -326,17 +320,16 @@ def build_tdl(name):
     TestTDL(tdl, name).build()
 
 
-def build_tpl(name, params):
+def build_tpl(name, props):
     tpl_path = os.path.join(TDL_DIR, name+'.tdl.tpl')
     tpl = TestTDLTemplate(tpl_path)
-    tpl.render(params).build()
+    tpl.render(props).build()
 
-
-def get_local_props():
-    props = {}
+def read_props(path, defaults={}):
+    props = defaults
 
     try:
-        with open(env.topdir + '/test/local.props') as f:
+        with open(path) as f:
             for line in f:
                 key, value = line.strip().split('=')
                 props[key] = value
@@ -361,22 +354,29 @@ if __name__ == '__main__':
 
     elif cmd == 'build':
         tgt = sys.argv[2]
-        params = get_local_props()
+        props = read_props(os.path.join(env.topdir, u'test/local.props'),
+            {
+                'fedora_mirror': 'http://download.fedoraproject.org/pub/fedora/linux',
+                'ubuntu_mirror': 'http://mirrors.us.kernel.org/ubuntu-releases',
+                'iso_repository': 'file://'
+            }
+        )
+
         for arg in sys.argv[3:]:
             key, value = arg.split('=')
-            params[key] = value
+            props[key] = value
 
         if tgt == 'all':
             for i in tdls:
                 build_tdl(i)
             for i in tpls:
-                build_tpl(i, params)
+                build_tpl(i, props)
 
         elif tgt in tdls:
             build_tdl(tgt)
 
         elif tgt in tpls:
-            build_tpl(tgt, params)
+            build_tpl(tgt, props)
 
         else:
             print "Target {} doesn't exist".format(tgt)
