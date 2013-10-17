@@ -297,7 +297,7 @@ class Grub2(GrubBase):
                 # following the close curly
                 kernel = None
                 for line in lines:
-                    m = re.match(u'\s*linux\s+(\S+)\s', line)
+                    m = re.match(u'\s*linux(?:efi)?\s+(\S+)\s', line)
                     if m is None:
                         if re.search(u'}\s*$', line):
                             break    
