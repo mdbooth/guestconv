@@ -16,6 +16,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+from itertools import izip
 import unittest
 
 import test_helper
@@ -37,10 +38,11 @@ import guestconv.converter as converter
 def make_grub_tests(root, kernels):
     def testListKernels(self):
         with converter.RootMounted(self.img.converter._h, root):
-            grub_kernels = list(self.img.converter._converters[root].
-                                    _bootloader.iter_kernels())
-
-        self.assertEqual(grub_kernels, kernels)
+            for g, k in izip(
+                self.img.converter._converters[root]._bootloader.iter_kernels(),
+                kernels
+            ):
+                self.assertRegexpMatches(g, k)
 
     return {'testListKernels': testListKernels}
 
@@ -73,7 +75,7 @@ Fedora_19_64_Test = test_helper.make_image_test(
     make_grub_tests(
         '/dev/VolGroup00/LogVol00',
         ['/boot/vmlinuz-3.9.5-301.fc19.x86_64',
-         '/boot/vmlinuz-0-rescue-d038cede98b74b7192266d40924cca79']
+         '/boot/vmlinuz-0-rescue-[0-9a-f]*']
     ),
     make_xml_test('''
 <guestconv>
