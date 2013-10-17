@@ -132,6 +132,71 @@ Fedora_19_64_Test = test_helper.make_image_test(
     make_inspect_identity_test()
 )
 
+Fedora_19_64_EFI_Test = test_helper.make_image_test(
+    'Fedora_19_64_EFI_Test',
+    FEDORA_19_64_EFI_IMG,
+    u'/dev/fedora/root',
+    {
+        u'graphics': [],
+        u'network': [u'e1000', u'rtl8139'],
+        u'block': [u'ide-hd', u'scsi-hd'],
+        u'console': [u'vc', u'serial']
+    },
+    make_grub_tests(
+        u'/dev/fedora/root',
+        [u'/boot/vmlinuz-3.9.5-301.fc19.x86_64',
+         u'/boot/vmlinuz-0-rescue-[0-9a-f]*']
+    ),
+    make_xml_test(u'''
+<guestconv>
+  <root name="/dev/fedora/root">
+    <info>
+      <arch>x86_64</arch>
+      <distribution>fedora</distribution>
+      <hostname>localhost.localdomain</hostname>
+      <os>linux</os>
+      <version>
+        <major>19</major>
+        <minor>0</minor>
+      </version>
+    </info>
+    <options>
+      <option description="Hypervisor support" name="hypervisor">
+        <value description="KVM">kvm</value>
+        <value description="Xen Paravirtualised">xenpv</value>
+        <value description="Xen Fully Virtualised">xenfv</value>
+        <value description="VirtualBox">vbox</value>
+        <value description="VMware">vmware</value>
+        <value description="Citrix Fully Virtualised">citrixfv</value>
+        <value description="Citrix Paravirtualised">citrixpv</value>
+      </option>
+      <option name="graphics" description="Graphics driver"/>
+      <option name="network" description="Network driver">
+        <value description="Intel E1000">e1000</value>
+        <value description="Realtek 8139">rtl8139</value>
+        <value description="VirtIO">virtio-net</value>
+      </option>
+      <option name="block" description="Block device driver">
+        <value description="IDE">ide-hd</value>
+        <value description="SCSI">scsi-hd</value>
+        <value description="VirtIO">virtio-blk</value>
+      </option>
+      <option name="console" description="System Console">
+        <value description="Kernel virtual console">vc</value>
+        <value description="Serial console">serial</value>
+        <value description="VirtIO Serial">virtio-serial</value>
+      </option>
+    </options>
+  </root>
+  <boot>
+    <loader disk="sda" name="grub2-efi" type="EFI">
+      <replacement name="grub2-bios" type="BIOS"/>
+    </loader>
+  </boot>
+</guestconv>
+    '''),
+)
+
 RHEL_46_32_Test = test_helper.make_image_test(
     'RHEL_46_32_Test',
     RHEL46_32_IMG,
@@ -160,6 +225,7 @@ RHEL_52_64_Test = test_helper.make_image_test(
 
 all_tests = unittest.TestSuite((
     unittest.makeSuite(Fedora_19_64_Test),
+    unittest.makeSuite(Fedora_19_64_EFI_Test),
     unittest.makeSuite(RHEL_46_32_Test),
     unittest.makeSuite(RHEL_52_64_Test)
 ))
