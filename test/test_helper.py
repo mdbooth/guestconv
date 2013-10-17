@@ -108,7 +108,7 @@ def cmpXMLNoOrdering(x1, x2):
             raise CmpXMLNoOrderingError(
                 u'Attributes of element {} differ: {}, {}'
                 .format(_format_node(n1), n1.attrib, n2.attrib),
-                depth)
+                depth + 1)
 
         if n1.text is None:
             n1.text = ''
