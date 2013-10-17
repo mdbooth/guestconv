@@ -49,8 +49,11 @@ def make_grub_tests(root, kernels):
 def make_xml_test(expected):
     def testXML(self):
         output = self.img.converter.inspect()
-        self.assertTrue(test_helper.cmpXMLNoOrdering(output, expected),
-                        'XML differs from expected: {}'.format(output))
+        try:
+            test_helper.cmpXMLNoOrdering(output, expected)
+        except test_helper.CmpXMLNoOrderingError as err:
+            self.fail(u'XML differs from expected: {}: {}'
+                      .format(err.message, output))
 
     return {'testXML': testXML}
 
