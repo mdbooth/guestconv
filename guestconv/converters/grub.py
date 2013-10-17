@@ -48,7 +48,14 @@ def detect(h, root, converter, logger):
                 next
 
             for cfg in h.glob_expand(u'{}/EFI/*/grub.*'.format(mp)):
-                m = re.search(u'grub\.(conf|cfg)$')
+                # String /dev/ from the device name
+                m = re.match(u'/dev/(.*)$', device)
+                if m is None:
+                    raise ConversionError(u'Unexpected device name: {}'
+                                          .format(device))
+                device = m.group(1)
+
+                m = re.search(u'grub\.(conf|cfg)$', cfg)
                 if m.group(1) == u'conf':
                     return GrubEFI(device, h, root, converter, logger, cfg)
                 else:
@@ -450,30 +457,8 @@ class Grub2BIOS(Grub2):
 
 
 class Grub2EFI(Grub2):
-    def __init__(self, h, root, converter, logger, cfg):
+    def __init__(self, device, h, root, converter, logger, cfg):
         (bootfs_device, prefix) = _find_boot(h, root)
-
-        # Check all devices for an EFI boot partition
-        def _find_boot_device():
-            for i in h.list_devices():
-                try:
-                    guid = h.part_get_gpt_type(i, 1)
-                    if guid == u'C12A7328-F81F-11D2-BA4B-00A0C93EC93B':
-                        return i
-                except GuestFSException:
-                    # Not EFI if partition isn't GPT
-                    next
-
-            raise BootLoaderNotFound()
-        device = _find_boot_device()
-
-        # Look for the EFI boot partition in mountpoints
-        try:
-            mp = h.mountpoints()[device + '1']
-        except KeyError:
-            logger.debug(u'Detected EFI bootloader with no mountpoint')
-            raise BootLoaderNotFound()
-
         super(Grub2EFI, self).__init__(u'grub2-efi', device, prefix,
                                        h, root, converter, logger, cfg)
 
