@@ -229,7 +229,9 @@ class GrubBIOS(Grub):
 
 class GrubEFI(Grub):
     def __init__(self, device, h, root, converter, logger, cfg):
-        super(GrubEFI, self).__init__(u'grub-efi', device,
+        (bootfs_device, prefix) = _find_boot(h, root)
+
+        super(GrubEFI, self).__init__(u'grub-efi', device, prefix,
                                       h, root, converter, logger, cfg)
 
     def inspect(self):
