@@ -290,9 +290,12 @@ class Converter(object):
             name = props[u'name']
             if name is not None:
                 attrs[u'name'] = name
-            if u'replacement' in props:
-                attrs[u'replacement'] = props[u'replacement']
+
             builder.start(u'loader', attrs)
+
+            if u'replacement' in props:
+                builder.start(u'replacement', props[u'replacement'])
+                builder.end(u'replacement')
 
             if u'options' in props:
                 for option in props[u'options']:
