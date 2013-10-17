@@ -194,7 +194,7 @@ Fedora_19_64_EFI_Test = test_helper.make_image_test(
     </loader>
   </boot>
 </guestconv>
-    '''),
+    ''')
 )
 
 RHEL_46_32_Test = test_helper.make_image_test(
