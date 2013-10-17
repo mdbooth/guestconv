@@ -44,7 +44,7 @@ def make_grub_tests(root, kernels):
             ):
                 self.assertRegexpMatches(g, k)
 
-    return {'testListKernels': testListKernels}
+    return {u'testListKernels': testListKernels}
 
 def make_xml_test(expected):
     def testXML(self):
@@ -55,7 +55,7 @@ def make_xml_test(expected):
             self.fail(u'XML differs from expected: {}: {}'
                       .format(err.message, output))
 
-    return {'testXML': testXML}
+    return {u'testXML': testXML}
 
 def make_inspect_identity_test():
     def testInspectIdentity(self):
@@ -63,12 +63,12 @@ def make_inspect_identity_test():
         xml2 = self.img.converter.inspect()
         self.assertIs(xml1, xml2)
 
-    return {'testInspectIdentity': testInspectIdentity}
+    return {u'testInspectIdentity': testInspectIdentity}
 
 Fedora_19_64_Test = test_helper.make_image_test(
     'Fedora_19_64_Test',
     FEDORA_19_64_IMG,
-    '/dev/VolGroup00/LogVol00',
+    u'/dev/VolGroup00/LogVol00',
     {
         u'graphics': [],
         u'network': [u'e1000', u'rtl8139'],
@@ -76,11 +76,11 @@ Fedora_19_64_Test = test_helper.make_image_test(
         u'console': [u'vc', u'serial']
     },
     make_grub_tests(
-        '/dev/VolGroup00/LogVol00',
-        ['/boot/vmlinuz-3.9.5-301.fc19.x86_64',
-         '/boot/vmlinuz-0-rescue-[0-9a-f]*']
+        u'/dev/VolGroup00/LogVol00',
+        [u'/boot/vmlinuz-3.9.5-301.fc19.x86_64',
+         u'/boot/vmlinuz-0-rescue-[0-9a-f]*']
     ),
-    make_xml_test('''
+    make_xml_test(u'''
 <guestconv>
   <root name="/dev/VolGroup00/LogVol00">
     <info>
@@ -135,7 +135,7 @@ Fedora_19_64_Test = test_helper.make_image_test(
 RHEL_46_32_Test = test_helper.make_image_test(
     'RHEL46_32_Test',
     RHEL46_32_IMG,
-    '/dev/VolGroup00/LogVol00',
+    u'/dev/VolGroup00/LogVol00',
     {
         u'graphics': [],
         u'network': [u'e1000', u'rtl8139'],
@@ -147,15 +147,15 @@ RHEL_46_32_Test = test_helper.make_image_test(
 RHEL_52_64_Test = test_helper.make_image_test(
     'RHEL52_64_Test',
     RHEL52_64_IMG,
-    '/dev/VolGroup00/LogVol00',
+    u'/dev/VolGroup00/LogVol00',
     {
         u'graphics': [],
         u'network': [u'e1000', u'rtl8139'],
         u'block': [u'ide-hd', u'scsi-hd'],
         u'console': [u'vc', u'serial']
     },
-    make_grub_tests('/dev/VolGroup00/LogVol00',
-                    ['/boot/vmlinuz-2.6.18-92.el5'])
+    make_grub_tests(u'/dev/VolGroup00/LogVol00',
+                    [u'/boot/vmlinuz-2.6.18-92.el5'])
 )
 
 all_tests = unittest.TestSuite((
