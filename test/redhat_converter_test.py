@@ -133,7 +133,7 @@ Fedora_19_64_Test = test_helper.make_image_test(
 )
 
 RHEL_46_32_Test = test_helper.make_image_test(
-    'RHEL46_32_Test',
+    'RHEL_46_32_Test',
     RHEL46_32_IMG,
     u'/dev/VolGroup00/LogVol00',
     {
@@ -145,7 +145,7 @@ RHEL_46_32_Test = test_helper.make_image_test(
 )
 
 RHEL_52_64_Test = test_helper.make_image_test(
-    'RHEL52_64_Test',
+    'RHEL_52_64_Test',
     RHEL52_64_IMG,
     u'/dev/VolGroup00/LogVol00',
     {
