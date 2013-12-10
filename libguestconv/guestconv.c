@@ -27,8 +27,7 @@ libconv_log(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef LibconvLogMethods[] = {
-    {"libconv_log",  libconv_log, METH_VARARGS,
-     "Log a message."},
+    {"libconv_log",  libconv_log, METH_VARARGS, "Log a message."},
     {NULL, NULL, 0, NULL}
 };
 
@@ -81,18 +80,18 @@ guestconv_check_pyerr(GuestConv *gc)
 
     err = PyErr_Occurred();
     if (err != NULL) {
-	PyObject *ptype, *pvalue, *ptraceback;
-	PyObject *pystr, *module_name, *pyth_module, *pyth_func;
-	char *str;
+        PyObject *ptype, *pvalue, *ptraceback;
+        PyObject *pystr, *module_name, *pyth_module, *pyth_func;
+        char *str;
 
-	PyErr_Fetch(&ptype, &pvalue, &ptraceback);
-	pystr = PyObject_Str(pvalue);
-	str = PyString_AsString(pystr);
-	gc->error = strdup(str);
+        PyErr_Fetch(&ptype, &pvalue, &ptraceback);
+        pystr = PyObject_Str(pvalue);
+        str = PyString_AsString(pystr);
+        gc->error = strdup(str);
 
-	pystr = PyObject_GetAttrString(ptype, "__name__");
-	str = PyString_AsString(pystr);
-	gc->error_type = strdup(str);
+        pystr = PyObject_GetAttrString(ptype, "__name__");
+        str = PyString_AsString(pystr);
+        gc->error_type = strdup(str);
 
         /* See if we can get a full traceback */
         module_name = PyString_FromString("traceback");
@@ -137,7 +136,7 @@ guestconv_init(char *target, char *database_location, GuestConvLoggerFunc logger
 
     gc = guestconv_new();
     if (gc == NULL)
-	return gc;
+        return gc;
 
     guestconv_logger_func = logger_func;
 
@@ -148,8 +147,8 @@ guestconv_init(char *target, char *database_location, GuestConvLoggerFunc logger
     Py_DECREF(module_name);
 
     if (pyth_module == NULL) {
-	gc->error = "Cannot load python module 'guestconv'";
-	return gc;
+        gc->error = "Cannot load python module 'guestconv'";
+        return gc;
     }
 
     gc->pyth_module = pyth_module;
@@ -170,7 +169,7 @@ guestconv_init(char *target, char *database_location, GuestConvLoggerFunc logger
             return gc;
         }
     } else {
-	guestconv_check_pyerr(gc);
+        guestconv_check_pyerr(gc);
     }
 
     return gc;
@@ -203,7 +202,7 @@ guestconv_inspect(GuestConv *gc)
     guestconv_check_pyerr(gc);
 
     if (!guestconv_err(gc))
-	str = PyString_AsString(ret);
+        str = PyString_AsString(ret);
 
     return str;
 }
